@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Canfenci Hata Analizi</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="dark-mode">
+  <header id="app-header">
+    <div class="header-content">
+      <h1 class="app-title">
+        <span class="can">Can</span><span class="fenci">fenci</span> Hata Analizi
+      </h1>
+      <p class="subtitle">Akıllı Hata Takip ve Analiz Sistemi</p>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" aria-label="Tema Değiştir">
+      <span class="theme-icon">🌙</span>
+    </button>
+  </header>
+
+  <main id="app-content">
+    <!-- Tab Navigation -->
+    <nav class="tab-navigation">
+      <button class="tab-btn active" data-tab="students">
+        <span class="tab-icon">👥</span>
+        <span class="tab-text">Öğrenciler</span>
+      </button>
+      <button class="tab-btn" data-tab="error-entry" disabled>
+        <span class="tab-icon">📝</span>
+        <span class="tab-text">Hata Kaydı</span>
+      </button>
+      <button class="tab-btn" data-tab="error-view" disabled>
+        <span class="tab-icon">📋</span>
+        <span class="tab-text">Kayıtlı Hatalar</span>
+      </button>
+      <button class="tab-btn" data-tab="reports" disabled>
+        <span class="tab-icon">📊</span>
+        <span class="tab-text">Raporlar ve Analizler</span>
+      </button>
+    </nav>
+
+    <!-- Tab 1: Öğrenci Yönetimi -->
+    <div class="tab-content active" id="tab-students">
+      <section class="card">
+        <div class="card-header">
+          <h2>📚 Öğrenci Yönetimi</h2>
+        </div>
+        
+        <form id="add-student-form" class="modern-form">
+          <input type="hidden" id="edit-student-id">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="student-name">
+                <span class="label-icon">👤</span>
+                Ad-Soyad
+              </label>
+              <input type="text" id="student-name" placeholder="Öğrenci adını girin" required>
+            </div>
+            
+            <div class="form-group">
+              <label for="student-class">
+                <span class="label-icon">🎓</span>
+                Sınıf
+              </label>
+              <select id="student-class" required>
+                <option value="">Sınıf Seçin</option>
+                <option value="5">5. Sınıf</option>
+                <option value="6">6. Sınıf</option>
+                <option value="7">7. Sınıf</option>
+                <option value="8">8. Sınıf</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-actions">
+            <button type="submit" class="btn-primary" id="save-student-btn">
+              <span>➕</span> <span id="save-btn-text">Öğrenci Ekle</span>
+            </button>
+            <button type="button" class="btn-secondary hidden" id="cancel-edit-btn">
+              <span>✖️</span> İptal
+            </button>
+          </div>
+        </form>
+        
+        <div id="student-list-container" class="hidden">
+          <h3 class="section-title">Kayıtlı Öğrenciler</h3>
+          <ul id="student-list" class="student-grid"></ul>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab 2: Hata Kaydı -->
+    <div class="tab-content" id="tab-error-entry">
+      <section class="card">
+        <div class="card-header">
+          <h2>📝 Hata Kaydı</h2>
+        </div>
+
+        <!-- Öğrenci Seçimi -->
+        <div class="student-selector">
+          <label class="selector-label">
+            <span class="label-icon">👨‍🎓</span>
+            Öğrenci Seçin
+          </label>
+          <div id="student-cards" class="student-cards"></div>
+        </div>
+
+        <div id="selected-student-info" class="selected-info hidden"></div>
+        
+        <form id="add-error-form" class="modern-form hidden">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="exam-name">
+                <span class="label-icon">📋</span>
+                Deneme Adı
+              </label>
+              <input type="text" id="exam-name" placeholder="Örn: 1. Deneme" required>
+            </div>
+
+            <div class="form-group">
+              <label for="lesson">
+                <span class="label-icon">📖</span>
+                Ders
+              </label>
+              <select id="lesson" required>
+                <option value="">Ders Seçin</option>
+                <option value="fen_bilimleri">Fen Bilimleri</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Deneme İstatistikleri -->
+          <div class="exam-stats-container">
+            <h4 class="stats-title">📊 Deneme İstatistikleri</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="correct-answers">
+                  <span class="label-icon">✅</span>
+                  Doğru Sayısı
+                </label>
+                <input type="number" id="correct-answers" min="0" placeholder="0" required>
+              </div>
+
+              <div class="form-group">
+                <label for="wrong-answers">
+                  <span class="label-icon">❌</span>
+                  Yanlış Sayısı
+                </label>
+                <input type="number" id="wrong-answers" min="0" placeholder="0" required>
+              </div>
+
+              <div class="form-group">
+                <label for="empty-answers">
+                  <span class="label-icon">⚪</span>
+                  Boş Sayısı
+                </label>
+                <input type="number" id="empty-answers" min="0" placeholder="0" required>
+              </div>
+            </div>
+            <div class="net-score">
+              <span class="net-label">Net:</span>
+              <span id="net-score-value" class="net-value">0</span>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="unit">
+                <span class="label-icon">📚</span>
+                Ünite
+              </label>
+              <select id="unit" required>
+                <option value="">Ünite Seçin</option>
+                <option value="mevsimler_iklim">Mevsimler ve İklim</option>
+                <option value="dna_genetik_kod">DNA ve Genetik Kod</option>
+                <option value="basinc">Basınç</option>
+                <option value="madde_endustri">Madde ve Endüstri</option>
+                <option value="basit_makineler">Basit Makineler</option>
+                <option value="enerji_donusumleri">Enerji Dönüşümleri ve Çevre Bilimi</option>
+                <option value="elektrik_yukleri">Elektrik Yükleri ve Elektrik Enerjisi</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="topic">
+                <span class="label-icon">🎯</span>
+                Konu
+              </label>
+              <select id="topic" required disabled>
+                <option value="">Önce ünite seçin</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="question-no">
+                <span class="label-icon">🔢</span>
+                Soru No
+              </label>
+              <input type="number" id="question-no" placeholder="Soru numarası" min="1" required>
+            </div>
+
+            <div class="form-group">
+              <label for="error-code">
+                <span class="label-icon">⚠️</span>
+                Hata Kodu
+              </label>
+              <select id="error-code" required>
+                <option value="">Hata Kodu Seçin</option>
+                <option value="D">D - Dikkatsizlik</option>
+                <option value="YO">YO - Yanlış Okuma</option>
+                <option value="BE">BE - Bilgi Eksikliği</option>
+                <option value="ZY">ZY - Zaman Yetmedi</option>
+                <option value="İH">İH - İşlem Hatası</option>
+                <option value="KY">KY - Kavram Yanılgısı</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="thought">
+              <span class="label-icon">💭</span>
+              O anda ne düşündüm?
+            </label>
+            <textarea id="thought" rows="3" placeholder="Soruyu çözerken aklımdan geçenler..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="correction">
+              <span class="label-icon">✅</span>
+              Doğrusu ne?
+            </label>
+            <textarea id="correction" rows="3" placeholder="Sorunun doğru çözümü..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="action">
+              <span class="label-icon">🎯</span>
+              Yapılması gereken
+            </label>
+            <div class="action-input-group">
+              <textarea id="action" rows="3" placeholder="Bu hatayı tekrarlamamak için..."></textarea>
+              <button type="button" id="ai-suggest-btn" class="btn-ai">
+                <span>🤖</span> AI Önerisi Al
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary">
+            <span>💾</span> Hata Kaydet
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <!-- Tab 3: Kayıtlı Hatalar Görünümü -->
+    <div class="tab-content" id="tab-error-view">
+      <section class="card">
+        <div class="card-header">
+          <h2>📋 Kayıtlı Hatalar</h2>
+        </div>
+
+        <!-- Öğrenci Filtresi -->
+        <div class="filter-section">
+          <label class="selector-label">
+            <span class="label-icon">🔍</span>
+            Öğrenci Filtrele
+          </label>
+          <div id="filter-student-cards" class="student-cards"></div>
+        </div>
+
+        <!-- Hata Tablosu -->
+        <div id="error-table-container" class="error-table-container">
+          <div class="table-responsive">
+            <table id="error-table" class="error-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Öğrenci</th>
+                  <th>Deneme</th>
+                  <th>Ünite</th>
+                  <th>Konu</th>
+                  <th>Soru</th>
+                  <th>Hata Kodu</th>
+                  <th>Net</th>
+                  <th>Tarih</th>
+                  <th>İşlem</th>
+                </tr>
+              </thead>
+              <tbody id="error-table-body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Tab 4: Raporlar ve Analizler -->
+    <div class="tab-content" id="tab-reports">
+      <section class="card">
+        <div class="card-header">
+          <h2>📊 Raporlar ve Analizler</h2>
+        </div>
+        
+        <!-- Öğrenci Seçimi (PDF için) -->
+        <div class="student-selector">
+          <label class="selector-label">
+            <span class="label-icon">👨‍🎓</span>
+            Rapor Alınacak Öğrenci
+          </label>
+          <div id="report-student-cards" class="student-cards"></div>
+        </div>
+
+        <div id="selected-report-student-info" class="selected-info hidden"></div>
+
+        <div class="report-actions">
+          <button id="download-pdf" class="btn-secondary" disabled>
+            <span>📄</span> PDF Raporu İndir
+          </button>
+          <button id="view-statistics" class="btn-info">
+            <span>📈</span> Genel İstatistikler
+          </button>
+        </div>
+
+        <div id="statistics-container" class="statistics-container hidden">
+          <h3 class="section-title">📈 Genel İstatistikler</h3>
+          <div id="statistics-content"></div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
