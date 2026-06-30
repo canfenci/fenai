@@ -1,340 +1,1985 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Canfenci Hata Analizi</title>
-  <link rel="stylesheet" href="styles.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FenAI – Canfenci Üretim Paneli (TYMM 2024)</title>
+  
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
+  <!-- Marked.js for Premium Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- KaTeX for Scientific & Math Equation Rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+
+  <!-- PWA Manifest & Meta Tags -->
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <style>
+    :root {
+      --primary: #6c63ff;
+      --primary-dark: #574fd6;
+      --secondary: #00c9a7;
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface2: #16213e;
+      --border: #2a2a4a;
+      --text: #e0e0f0;
+      --text-muted: #8888aa;
+      --success: #00c9a7;
+      --warning: #ffb347;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; 
+      background: var(--bg); 
+      color: var(--text); 
+      min-height: 100vh; 
+      display: flex; 
+    }
+
+    /* SIDEBAR */
+    #sidebar {
+      width: 260px; min-height: 100vh; background: var(--surface);
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+      position: fixed; left: 0; top: 0; bottom: 0; z-index: 100; transition: transform 0.3s;
+    }
+    .sidebar-logo {
+      padding: 24px 20px 16px; border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo h1 { font-size: 1.6rem; font-weight: 800; color: var(--primary); letter-spacing: 1px; }
+    .sidebar-logo p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .api-status { padding: 12px 20px; border-bottom: 1px solid var(--border); }
+    .api-status-item { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 6px; }
+    .api-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); flex-shrink: 0; }
+    .api-dot.active { background: var(--success); }
+    
+    .nav-section { padding: 12px 20px 4px; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+      cursor: pointer; border-left: 3px solid transparent; transition: all 0.2s;
+      font-size: 0.88rem; color: var(--text-muted);
+    }
+    .nav-item:hover { background: rgba(108,99,255,0.1); color: var(--text); }
+    .nav-item.active { border-left-color: var(--primary); background: rgba(108,99,255,0.15); color: var(--primary); font-weight: 600; }
+    .nav-item .nav-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid var(--border); font-size: 0.72rem; color: var(--text-muted); text-align: center; }
+
+    /* MAIN CONTENT */
+    #main { margin-left: 260px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar {
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 16px 32px; display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .topbar h2 { font-size: 1.1rem; font-weight: 700; }
+    .topbar-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+    .content { padding: 32px; flex: 1; }
+
+    /* CARDS */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    }
+    .card-title { font-size: 0.85rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--primary); margin-bottom: 16px; }
+
+    /* FORM STYLING */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-group label { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; }
+    select, input, textarea {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); padding: 10px 14px; font-size: 0.88rem; font-family: inherit;
+      transition: border-color 0.2s; width: 100%;
+    }
+    select:focus, input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* BUTTONS */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 11px 22px;
+      border-radius: 8px; border: none; cursor: pointer; font-size: 0.88rem;
+      font-weight: 600; transition: all 0.2s; font-family: inherit;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+    .btn-primary:disabled { background: #444; color: #888; cursor: not-allowed; transform: none; }
+    .btn-success { background: var(--secondary); color: #000; }
+    .btn-success:hover { opacity: 0.85; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 7px 14px; font-size: 0.8rem; }
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* HIGH FIDELITY RENDERED OUTPUT BOX */
+    .output-box {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; min-height: 150px; font-size: 0.92rem; line-height: 1.8;
+      color: var(--text); position: relative; overflow-y: auto;
+    }
+    .output-placeholder { color: var(--text-muted); font-style: italic; }
+
+    /* Rich Document Styles inside Output Boxes */
+    .output-box h1, .output-box h2, .output-box h3, .output-box h4 {
+      color: var(--primary); margin-top: 1.6rem; margin-bottom: 0.8rem; font-weight: 700;
+    }
+    .output-box h1 { font-size: 1.45rem; border-bottom: 2px solid var(--border); padding-bottom: 6px; }
+    .output-box h2 { font-size: 1.28rem; }
+    .output-box h3 { font-size: 1.1rem; }
+    .output-box p { margin-bottom: 1.1rem; }
+    .output-box ul, .output-box ol { margin-left: 1.5rem; margin-bottom: 1.1rem; }
+    .output-box li { margin-bottom: 0.4rem; }
+    .output-box table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; }
+    .output-box th { background: rgba(108, 99, 255, 0.15); color: var(--primary); font-weight: 700; text-align: left; padding: 10px; border: 1px solid var(--border); }
+    .output-box td { padding: 10px; border: 1px solid var(--border); }
+    .output-box blockquote { border-left: 4px solid var(--primary); padding-left: 15px; margin: 1rem 0; color: var(--text-muted); font-style: italic; }
+    .output-box code { background: rgba(255, 255, 255, 0.08); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+    .output-box pre { background: #080810; border: 1px solid var(--border); padding: 15px; border-radius: 8px; overflow-x: auto; margin-bottom: 1rem; }
+    .output-box pre code { background: none; padding: 0; font-size: 0.85rem; }
+
+    /* LOADING & SPINNERS */
+    .loading-bar {
+      height: 3px; background: linear-gradient(90deg, var(--primary), var(--secondary));
+      border-radius: 2px; animation: loadbar 1.5s infinite;
+      display: none; margin-bottom: 10px;
+    }
+    @keyframes loadbar { 0%{width:0%} 50%{width:70%} 100%{width:100%} }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* BADGES */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+    .badge-primary { background: rgba(108,99,255,0.2); color: var(--primary); }
+    .badge-success { background: rgba(0,201,167,0.2); color: var(--secondary); }
+    .badge-warning { background: rgba(255,179,71,0.2); color: var(--warning); }
+
+    /* PUAN TABLOSU */
+    .puan-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .puan-table th { background: rgba(108,99,255,0.2); padding: 8px 12px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .puan-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .puan-table tr:last-child td { border-bottom: none; }
+
+    /* INTERACTIVE DRAG-DROP ACTIVITY (TOUCH ADAPTIVE) */
+    .dd-container { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 15px; }
+    .dd-bank { flex: 1; min-width: 200px; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 10px; border: 1px dashed var(--border); }
+    .dd-zones { flex: 2; min-width: 300px; display: grid; grid-template-columns: 1fr; gap: 15px; }
+    .dd-item { 
+      background: var(--primary); color: #fff; padding: 10px 14px; border-radius: 6px; 
+      margin-bottom: 8px; cursor: grab; font-size: 0.82rem; user-select: none;
+      transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1);
+      display: inline-block; width: auto; margin-right: 6px;
+    }
+    .dd-item:hover { transform: translateY(-1px); background: var(--primary-dark); }
+    .dd-item:active { cursor: grabbing; }
+    .dd-item.selected-item {
+      outline: 3px solid var(--secondary);
+      box-shadow: 0 0 10px var(--secondary);
+      transform: scale(1.05);
+    }
+    .dd-zone { 
+      border: 2px dashed var(--border); border-radius: 8px; padding: 16px; 
+      min-height: 80px; transition: all 0.2s; background: rgba(255,255,255,0.01);
+      cursor: pointer;
+    }
+    .dd-zone.dragover { border-color: var(--primary); background: rgba(108,99,255,0.1); }
+    .dd-zone-label { font-size: 0.82rem; font-weight: 700; color: var(--secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .dd-zone-items { display: flex; flex-wrap: wrap; gap: 6px; }
+    .dd-zone-items .dd-item { margin: 0; }
+    #dd-items.dragover {
+      background: rgba(108, 99, 255, 0.08);
+      border-radius: 6px;
+    }
+
+    /* SETTINGS & LOGS */
+    .settings-group { margin-bottom: 24px; }
+    .settings-group h3 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .api-key-row { display: flex; gap: 10px; align-items: center; }
+    .api-key-row input { flex: 1; }
+
+    /* TOAST NOTIFICATION */
+    #toast {
+      position: fixed; bottom: 30px; right: 30px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px; padding: 14px 20px;
+      font-size: 0.85rem; z-index: 9999; transform: translateY(100px); opacity: 0;
+      transition: all 0.3s; max-width: 320px; pointer-events: none;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-left: 4px solid var(--secondary); }
+    #toast.error { border-left: 4px solid var(--danger); }
+    #toast.info { border-left: 4px solid var(--primary); }
+
+    /* RESPONSIVE LAYOUT */
+    @media (max-width: 768px) {
+      #sidebar { transform: translateX(-260px); }
+      #sidebar.open { transform: translateX(0); }
+      #main { margin-left: 0; }
+      .form-row, .form-row-3 { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+      .topbar { padding: 12px 16px; flex-direction: column; align-items: stretch; gap: 12px; }
+      #menu-toggle { display: flex !important; }
+    }
+    #menu-toggle { display: none; background: none; border: none; color: var(--text); font-size: 1.4rem; cursor: pointer; align-items: center; justify-content: center; }
+  </style>
 </head>
-<body class="dark-mode">
-  <header id="app-header">
-    <div class="header-content">
-      <h1 class="app-title">
-        <span class="can">Can</span><span class="fenci">fenci</span> Hata Analizi
-      </h1>
-      <p class="subtitle">Akıllı Hata Takip ve Analiz Sistemi</p>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>🔬 FenAI</h1>
+    <p>Canfenci Üretim Paneli</p>
+  </div>
+  <div class="api-status">
+    <div class="api-status-item">
+      <div class="api-dot active" id="dot-gemini"></div>
+      <span id="label-gemini">Gemini API (Dahili)</span>
     </div>
-    <button id="theme-toggle" class="theme-toggle" aria-label="Tema Değiştir">
-      <span class="theme-icon">🌙</span>
-    </button>
-  </header>
-
-  <main id="app-content">
-    <!-- Tab Navigation -->
-    <nav class="tab-navigation">
-      <button class="tab-btn active" data-tab="students">
-        <span class="tab-icon">👥</span>
-        <span class="tab-text">Öğrenciler</span>
-      </button>
-      <button class="tab-btn" data-tab="error-entry" disabled>
-        <span class="tab-icon">📝</span>
-        <span class="tab-text">Hata Kaydı</span>
-      </button>
-      <button class="tab-btn" data-tab="error-view" disabled>
-        <span class="tab-icon">📋</span>
-        <span class="tab-text">Kayıtlı Hatalar</span>
-      </button>
-      <button class="tab-btn" data-tab="reports" disabled>
-        <span class="tab-icon">📊</span>
-        <span class="tab-text">Raporlar ve Analizler</span>
-      </button>
-    </nav>
-
-    <!-- Tab 1: Öğrenci Yönetimi -->
-    <div class="tab-content active" id="tab-students">
-      <section class="card">
-        <div class="card-header">
-          <h2>📚 Öğrenci Yönetimi</h2>
-        </div>
-        
-        <form id="add-student-form" class="modern-form">
-          <input type="hidden" id="edit-student-id">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="student-name">
-                <span class="label-icon">👤</span>
-                Ad-Soyad
-              </label>
-              <input type="text" id="student-name" placeholder="Öğrenci adını girin" required>
-            </div>
-            
-            <div class="form-group">
-              <label for="student-class">
-                <span class="label-icon">🎓</span>
-                Sınıf
-              </label>
-              <select id="student-class" required>
-                <option value="">Sınıf Seçin</option>
-                <option value="5">5. Sınıf</option>
-                <option value="6">6. Sınıf</option>
-                <option value="7">7. Sınıf</option>
-                <option value="8">8. Sınıf</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="form-actions">
-            <button type="submit" class="btn-primary" id="save-student-btn">
-              <span>➕</span> <span id="save-btn-text">Öğrenci Ekle</span>
-            </button>
-            <button type="button" class="btn-secondary hidden" id="cancel-edit-btn">
-              <span>✖️</span> İptal
-            </button>
-          </div>
-        </form>
-        
-        <div id="student-list-container" class="hidden">
-          <h3 class="section-title">Kayıtlı Öğrenciler</h3>
-          <ul id="student-list" class="student-grid"></ul>
-        </div>
-      </section>
+    <div class="api-status-item">
+      <div class="api-dot" id="dot-deepseek"></div>
+      <span>DeepSeek API (Özel)</span>
     </div>
+    <div class="api-status-item">
+      <div class="api-dot" id="dot-openrouter"></div>
+      <span>OpenRouter API (Özel)</span>
+    </div>
+  </div>
+  <div class="nav-section">Modüller</div>
+  <div class="nav-item active" onclick="showPage('konu', this)">
+    <span class="nav-icon">📖</span> Konu Anlatımı
+  </div>
+  <div class="nav-item" onclick="showPage('test', this)">
+    <span class="nav-icon">📋</span> Kavram Testi
+  </div>
+  <div class="nav-item" onclick="showPage('baglamli', this)">
+    <span class="nav-icon">🧠</span> Bağlamlı Soru (PISA)
+  </div>
+  <div class="nav-item" onclick="showPage('calisma', this)">
+    <span class="nav-icon">📄</span> Çalışma Kağıdı
+  </div>
+  <div class="nav-item" onclick="showPage('yazili', this)">
+    <span class="nav-icon">📝</span> Yazılı Sınav
+  </div>
+  <div class="nav-item" onclick="showPage('surkle', this)">
+    <span class="nav-icon">🎮</span> Sürükle-Bırak (Oyun)
+  </div>
+  <div class="nav-section">Sistem</div>
+  <div class="nav-item" onclick="showPage('ayarlar', this)">
+    <span class="nav-icon">⚙️</span> Ayarlar
+  </div>
+  <div class="sidebar-footer">
+    Canfenci © 2026 · TYMM 2024 Uyumlu
+  </div>
+</nav>
 
-    <!-- Tab 2: Hata Kaydı -->
-    <div class="tab-content" id="tab-error-entry">
-      <section class="card">
-        <div class="card-header">
-          <h2>📝 Hata Kaydı</h2>
-        </div>
+<!-- MAIN APP BODY -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div>
+        <h2 id="page-title">📖 Konu Anlatımı</h2>
+        <div class="topbar-sub" id="page-sub">Maarif Modeli müfredatına uygun konu anlatımı üret</div>
+      </div>
+    </div>
+    
+    <!-- AI ENGINE SWITCHER -->
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label for="ai-engine-select" style="font-size:0.75rem; color:var(--text-muted); font-weight:600; white-space:nowrap;">Motor:</label>
+        <select id="ai-engine-select" onchange="onEngineChange()" style="padding:6px 12px; font-size:0.8rem; background:var(--surface2); width:auto; margin:0;">
+          <option value="smart" selected>🧠 Canfenci Akıllı Dağıtım Modu</option>
+          <option value="gemini">💎 Gemini 2.5 Flash</option>
+          <option value="deepseek">🐳 DeepSeek-V3 (Özel Anahtar)</option>
+          <option value="openrouter-r1">🧠 DeepSeek-R1 (OpenRouter)</option>
+          <option value="openrouter-claude">🎭 Claude 3.5 Sonnet (OpenRouter)</option>
+          <option value="openrouter-gpt">⚡ GPT-4o (OpenRouter)</option>
+        </select>
+      </div>
+      <span class="badge badge-success" id="engine-badge">Akıllı Akış Aktif</span>
+    </div>
+  </div>
 
-        <!-- Öğrenci Seçimi -->
-        <div class="student-selector">
-          <label class="selector-label">
-            <span class="label-icon">👨‍🎓</span>
-            Öğrenci Seçin
-          </label>
-          <div id="student-cards" class="student-cards"></div>
-        </div>
+  <div class="content">
 
-        <div id="selected-student-info" class="selected-info hidden"></div>
-        
-        <form id="add-error-form" class="modern-form hidden">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="exam-name">
-                <span class="label-icon">📋</span>
-                Deneme Adı
-              </label>
-              <input type="text" id="exam-name" placeholder="Örn: 1. Deneme" required>
-            </div>
-
-            <div class="form-group">
-              <label for="lesson">
-                <span class="label-icon">📖</span>
-                Ders
-              </label>
-              <select id="lesson" required>
-                <option value="">Ders Seçin</option>
-                <option value="fen_bilimleri">Fen Bilimleri</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Deneme İstatistikleri -->
-          <div class="exam-stats-container">
-            <h4 class="stats-title">📊 Deneme İstatistikleri</h4>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="correct-answers">
-                  <span class="label-icon">✅</span>
-                  Doğru Sayısı
-                </label>
-                <input type="number" id="correct-answers" min="0" placeholder="0" required>
-              </div>
-
-              <div class="form-group">
-                <label for="wrong-answers">
-                  <span class="label-icon">❌</span>
-                  Yanlış Sayısı
-                </label>
-                <input type="number" id="wrong-answers" min="0" placeholder="0" required>
-              </div>
-
-              <div class="form-group">
-                <label for="empty-answers">
-                  <span class="label-icon">⚪</span>
-                  Boş Sayısı
-                </label>
-                <input type="number" id="empty-answers" min="0" placeholder="0" required>
-              </div>
-            </div>
-            <div class="net-score">
-              <span class="net-label">Net:</span>
-              <span id="net-score-value" class="net-value">0</span>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="unit">
-                <span class="label-icon">📚</span>
-                Ünite
-              </label>
-              <select id="unit" required>
-                <option value="">Ünite Seçin</option>
-                <option value="mevsimler_iklim">Mevsimler ve İklim</option>
-                <option value="dna_genetik_kod">DNA ve Genetik Kod</option>
-                <option value="basinc">Basınç</option>
-                <option value="madde_endustri">Madde ve Endüstri</option>
-                <option value="basit_makineler">Basit Makineler</option>
-                <option value="enerji_donusumleri">Enerji Dönüşümleri ve Çevre Bilimi</option>
-                <option value="elektrik_yukleri">Elektrik Yükleri ve Elektrik Enerjisi</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="topic">
-                <span class="label-icon">🎯</span>
-                Konu
-              </label>
-              <select id="topic" required disabled>
-                <option value="">Önce ünite seçin</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="question-no">
-                <span class="label-icon">🔢</span>
-                Soru No
-              </label>
-              <input type="number" id="question-no" placeholder="Soru numarası" min="1" required>
-            </div>
-
-            <div class="form-group">
-              <label for="error-code">
-                <span class="label-icon">⚠️</span>
-                Hata Kodu
-              </label>
-              <select id="error-code" required>
-                <option value="">Hata Kodu Seçin</option>
-                <option value="D">D - Dikkatsizlik</option>
-                <option value="YO">YO - Yanlış Okuma</option>
-                <option value="BE">BE - Bilgi Eksikliği</option>
-                <option value="ZY">ZY - Zaman Yetmedi</option>
-                <option value="İH">İH - İşlem Hatası</option>
-                <option value="KY">KY - Kavram Yanılgısı</option>
-              </select>
-            </div>
-          </div>
-
+    <!-- ===== KONU ANLATIMI ===== -->
+    <div id="page-konu" class="page-content">
+      <div class="card">
+        <div class="card-title">📚 Müfredat Seçimi (TYMM 2024 Uyumlu)</div>
+        <div class="form-row">
           <div class="form-group">
-            <label for="thought">
-              <span class="label-icon">💭</span>
-              O anda ne düşündüm?
-            </label>
-            <textarea id="thought" rows="3" placeholder="Soruyu çözerken aklımdan geçenler..."></textarea>
+            <label>Sınıf</label>
+            <select id="konu-sinif" onchange="loadUnits('konu')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
           </div>
-
           <div class="form-group">
-            <label for="correction">
-              <span class="label-icon">✅</span>
-              Doğrusu ne?
-            </label>
-            <textarea id="correction" rows="3" placeholder="Sorunun doğru çözümü..."></textarea>
+            <label>Ünite / Tema</label>
+            <select id="konu-unite" onchange="loadTopics('konu')"></select>
           </div>
-
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="konu-topic"></select>
+        </div>
+        <div class="form-row">
           <div class="form-group">
-            <label for="action">
-              <span class="label-icon">🎯</span>
-              Yapılması gereken
-            </label>
-            <div class="action-input-group">
-              <textarea id="action" rows="3" placeholder="Bu hatayı tekrarlamamak için..."></textarea>
-              <button type="button" id="ai-suggest-btn" class="btn-ai">
-                <span>🤖</span> AI Önerisi Al
-              </button>
-            </div>
+            <label>Anlatım Düzeyi</label>
+            <select id="konu-duzey">
+              <option value="baslangic">Başlangıç (Temel Kavramlar)</option>
+              <option value="orta" selected>Orta Düzey (Kazanım Odaklı)</option>
+              <option value="ileri">İleri Düzey (Derinlemesine & Üst Düzey)</option>
+            </select>
           </div>
-
-          <button type="submit" class="btn-primary">
-            <span>💾</span> Hata Kaydet
-          </button>
-        </form>
-      </section>
-    </div>
-
-    <!-- Tab 3: Kayıtlı Hatalar Görünümü -->
-    <div class="tab-content" id="tab-error-view">
-      <section class="card">
-        <div class="card-header">
-          <h2>📋 Kayıtlı Hatalar</h2>
-        </div>
-
-        <!-- Öğrenci Filtresi -->
-        <div class="filter-section">
-          <label class="selector-label">
-            <span class="label-icon">🔍</span>
-            Öğrenci Filtrele
-          </label>
-          <div id="filter-student-cards" class="student-cards"></div>
-        </div>
-
-        <!-- Hata Tablosu -->
-        <div id="error-table-container" class="error-table-container">
-          <div class="table-responsive">
-            <table id="error-table" class="error-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Öğrenci</th>
-                  <th>Deneme</th>
-                  <th>Ünite</th>
-                  <th>Konu</th>
-                  <th>Soru</th>
-                  <th>Hata Kodu</th>
-                  <th>Net</th>
-                  <th>Tarih</th>
-                  <th>İşlem</th>
-                </tr>
-              </thead>
-              <tbody id="error-table-body">
-              </tbody>
-            </table>
+          <div class="form-group">
+            <label>Anlatım Stili</label>
+            <select id="konu-stil">
+              <option value="klasik">Klasik Ders Anlatımı</option>
+              <option value="hikaye">Hikâye & Senaryo Tabanlı</option>
+              <option value="soru-cevap">Sokratik / Soru-Cevap Formatı</option>
+              <option value="ozet">Şematik Özet / Madde Madde</option>
+            </select>
           </div>
         </div>
-      </section>
-    </div>
-
-    <!-- Tab 4: Raporlar ve Analizler -->
-    <div class="tab-content" id="tab-reports">
-      <section class="card">
-        <div class="card-header">
-          <h2>📊 Raporlar ve Analizler</h2>
+        <div class="form-group">
+          <label>Ek Notlar / Özel Vurgulanacak Noktalar (isteğe bağlı)</label>
+          <textarea id="konu-not" placeholder="Örneğin: 'Sürtünmenin ısıya dönüşümünü bir deney tasarlayarak anlat...'"></textarea>
         </div>
-        
-        <!-- Öğrenci Seçimi (PDF için) -->
-        <div class="student-selector">
-          <label class="selector-label">
-            <span class="label-icon">👨‍🎓</span>
-            Rapor Alınacak Öğrenci
-          </label>
-          <div id="report-student-cards" class="student-cards"></div>
-        </div>
-
-        <div id="selected-report-student-info" class="selected-info hidden"></div>
-
-        <div class="report-actions">
-          <button id="download-pdf" class="btn-secondary" disabled>
-            <span>📄</span> PDF Raporu İndir
-          </button>
-          <button id="view-statistics" class="btn-info">
-            <span>📈</span> Genel İstatistikler
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="generateKonu()" id="btn-konu">
+            ✨ Konu Anlatımı Üret
           </button>
         </div>
-
-        <div id="statistics-container" class="statistics-container hidden">
-          <h3 class="section-title">📈 Genel İstatistikler</h3>
-          <div id="statistics-content"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>📄 Üretilen İçerik Önizlemesi</span>
+          <span class="badge badge-primary" id="routed-badge-konu">Beklemede</span>
         </div>
-      </section>
+        <div class="loading-bar" id="loading-konu"></div>
+        <div class="output-box" id="output-konu">
+          <span class="output-placeholder">Konu anlatımı burada görünecek...</span>
+        </div>
+        <div class="btn-group" style="margin-top:12px;">
+          <button class="btn btn-success btn-sm" onclick="copyOutput('output-konu')">📋 Kopyala</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadWord('output-konu','konu_anlatimi')">📥 Word İndir</button>
+        </div>
+      </div>
     </div>
-  </main>
 
-  <script src="app.js"></script>
+    <!-- ===== KAVRAM TESTİ ===== -->
+    <div id="page-test" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📋 Test Parametreleri</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sınıf</label>
+            <select id="test-sinif" onchange="loadUnits('test')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ünite / Tema</label>
+            <select id="test-unite" onchange="loadTopics('test')"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="test-topic"></select>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Soru Sayısı</label>
+            <select id="test-sayi">
+              <option value="5">5 Soru</option>
+              <option value="10" selected>10 Soru</option>
+              <option value="15">15 Soru</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Soru Tipi</label>
+            <select id="test-tip">
+              <option value="coktan" selected>Çoktan Seçmeli (4 şık)</option>
+              <option value="dogru-yanlis">Doğru-Yanlış Cümleleri</option>
+              <option value="karisik">Karma Test</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Zorluk Seviyesi</label>
+            <select id="test-zorluk">
+              <option value="kolay">Temel Bilgi (Kolay)</option>
+              <option value="orta" selected>Uygulama & Analiz (Orta)</option>
+              <option value="zor">Muhakeme (Zor)</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="generateTest()" id="btn-test">
+            ✨ Test Soruları Üret
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>📄 Üretilen Soru Kitapçığı</span>
+          <span class="badge badge-primary" id="routed-badge-test">Beklemede</span>
+        </div>
+        <div class="loading-bar" id="loading-test"></div>
+        <div class="output-box" id="output-test">
+          <span class="output-placeholder">Test soruları burada görünecek...</span>
+        </div>
+        <div class="btn-group" style="margin-top:12px;">
+          <button class="btn btn-success btn-sm" onclick="copyOutput('output-test')">📋 Kopyala</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadWord('output-test','kavram_testi')">📥 Word İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BAĞLAMLI SORU ===== -->
+    <div id="page-baglamli" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">🧠 PISA Tarzı Senaryolu Bağlamlı Soru Üretici</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sınıf</label>
+            <select id="bag-sinif" onchange="loadUnits('bag')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ünite / Tema</label>
+            <select id="bag-unite" onchange="loadTopics('bag')"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="bag-topic"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Senaryo Bağlamı</label>
+            <select id="bag-senaryo">
+              <option value="gunluk">Günlük Yaşam Mühendislik Problemleri</option>
+              <option value="cevre">Çevre ve İklim Krizi Bilinci</option>
+              <option value="teknoloji">Modern Bilimsel Buluşlar ve Teknolojiler</option>
+              <option value="saglik">Sağlıklı Yaşam ve Vücudumuz</option>
+              <option value="uzay">Uzay Keşifleri ve Astronomi</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Soru Sayısı (Senaryoya Bağlı)</label>
+            <select id="bag-sayi">
+              <option value="3" selected>3 Soru</option>
+              <option value="5">5 Soru</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="generateBaglamli()" id="btn-bag">
+            ✨ Bağlamlı Soru Üret
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>📄 Üretilen PISA Tarzı Çalışma Belgesi</span>
+          <span class="badge badge-primary" id="routed-badge-bag">Beklemede</span>
+        </div>
+        <div class="loading-bar" id="loading-bag"></div>
+        <div class="output-box" id="output-bag">
+          <span class="output-placeholder">Senaryolar ve sorular burada görünecek...</span>
+        </div>
+        <div class="btn-group" style="margin-top:12px;">
+          <button class="btn btn-success btn-sm" onclick="copyOutput('output-bag')">📋 Kopyala</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadWord('output-bag','baglamli_sorular')">📥 Word İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ÇALIŞMA KAĞIDI ===== -->
+    <div id="page-calisma" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📄 Çalışma Kağıdı Şablonları</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sınıf</label>
+            <select id="ck-sinif" onchange="loadUnits('ck')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ünite / Tema</label>
+            <select id="ck-unite" onchange="loadTopics('ck')"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="ck-topic"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Etkinlik Formatı</label>
+            <select id="ck-tur">
+              <option value="bosluk" selected>Kelimelerle Boşluk Doldurma</option>
+              <option value="eslestirme">Kavram-Tanım Eşleştirme</option>
+              <option value="kavram-haritasi">Kavram Haritası & Yapılandırılmış Grid</option>
+              <option value="karisik">Karma Etkinlik Seti</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Öğe/Soru Sayısı</label>
+            <select id="ck-sayi">
+              <option value="8">8 Öğe</option>
+              <option value="12" selected>12 Öğe</option>
+              <option value="16">16 Öğe</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="generateCalisma()" id="btn-ck">
+            ✨ Çalışma Kağıdı Üret
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>📄 Üretilen Öğrenci Etkinliği</span>
+          <span class="badge badge-primary" id="routed-badge-ck">Beklemede</span>
+        </div>
+        <div class="loading-bar" id="loading-ck"></div>
+        <div class="output-box" id="output-ck">
+          <span class="output-placeholder">Etkinlikler burada görünecek...</span>
+        </div>
+        <div class="btn-group" style="margin-top:12px;">
+          <button class="btn btn-success btn-sm" onclick="copyOutput('output-ck')">📋 Kopyala</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadWord('output-ck','calisma_kagidi')">📥 Word İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== YAZILI SINAV ===== -->
+    <div id="page-yazili" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📝 Yazılı Sınav Kompozisyon Yapısı</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sınıf</label>
+            <select id="yaz-sinif" onchange="loadUnits('yaz')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ünite / Tema</label>
+            <select id="yaz-unite" onchange="loadTopics('yaz')"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="yaz-topic"></select>
+        </div>
+        
+        <div id="yaz-sorular-container">
+          <div class="card-title" style="margin-top:16px; font-size:0.8rem; color:var(--text-muted);">Sınav Soru Bölümleri</div>
+          <div id="yaz-sorular-list"></div>
+          <button class="btn btn-outline btn-sm" onclick="addYaziliSoru()">+ Yeni Bölüm Ekle</button>
+        </div>
+        
+        <div style="margin-top:16px; padding:12px; background:var(--bg); border-radius:8px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border);">
+          <span style="font-size:0.85rem; color:var(--text-muted);">Sınav Puan Dağılımı Toplamı:</span>
+          <span style="font-size:1.1rem; font-weight:700; color:var(--secondary);" id="toplam-puan">0 Puan</span>
+        </div>
+        <div class="btn-group" style="margin-top:16px;">
+          <button class="btn btn-primary" onclick="generateYazili()" id="btn-yaz">
+            ✨ Resmi Sınav Evrakı Üret
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>📄 Üretilen Sınav Evrakı & Dereceli Anahtar</span>
+          <span class="badge badge-primary" id="routed-badge-yaz">Beklemede</span>
+        </div>
+        <div class="loading-bar" id="loading-yaz"></div>
+        <div class="output-box" id="output-yaz">
+          <span class="output-placeholder">Resmi sınav kağıdı burada görünecek...</span>
+        </div>
+        <div class="btn-group" style="margin-top:12px;">
+          <button class="btn btn-success btn-sm" onclick="copyOutput('output-yaz')">📋 Kopyala</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadWord('output-yaz','yazili_sinav')">📥 Word İndir</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SÜRÜKLE BIRAK ===== -->
+    <div id="page-surkle" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">🎮 İnteraktif Sınıf Oyunu Oluşturucu</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sınıf</label>
+            <select id="dd-sinif" onchange="loadUnits('dd')">
+              <option value="5">5. Sınıf (Maarif Modeli)</option>
+              <option value="6">6. Sınıf (Maarif Modeli)</option>
+              <option value="7">7. Sınıf (Maarif Modeli)</option>
+              <option value="8">8. Sınıf (LGS Müfredatı)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Ünite / Tema</label>
+            <select id="dd-unite" onchange="loadTopics('dd')"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Konu / Kazanım Detayı</label>
+          <select id="dd-topic"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Etkinlik Mantığı</label>
+            <select id="dd-tur">
+              <option value="siniflandirma" selected>Kategori Sınıflandırma</option>
+              <option value="eslestirme">Tanım Eşleştirme Oyunu</option>
+              <option value="siralama">Sıralama (Süreç/Büyüklük)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Kart Sayısı</label>
+            <select id="dd-sayi">
+              <option value="6">6 Kart</option>
+              <option value="8" selected>8 Kart</option>
+              <option value="10">10 Kart</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="generateDD()" id="btn-dd">
+            ✨ Akıllı Tahta Oyunu Üret
+          </button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+          <span>🎮 Akıllı Tahta İnteraktif Uygulaması</span>
+          <span class="badge badge-primary" id="routed-badge-dd">Beklemede</span>
+        </div>
+        <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:12px; margin-top:-8px;">
+          💡 <strong>Mobil/Tablet Desteği:</strong> Kartı tutup sürükleyebilir veya karta bir kez dokunup ardından hedef kategoriye veya başlangıç havuzuna dokunarak yerleştirebilirsiniz!
+        </p>
+        <div class="loading-bar" id="loading-dd"></div>
+        <div id="output-dd">
+          <div class="output-box"><span class="output-placeholder">İnteraktif uygulama yüklendiğinde burada canlanacak...</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AYARLAR ===== -->
+    <div id="page-ayarlar" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">⚙️ API & Motor Yapılandırması</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          FenAI, varsayılan olarak dahili veya özel <strong>Gemini 2.5 Flash</strong> ile entegre çalışır. "Canfenci Akıllı Dağıtım Modu" seçildiğinde görevler girdiğiniz anahtarlara göre otomatik dağıtılır.
+        </p>
+
+        <!-- PORTABLE GEMINI KEY -->
+        <div class="settings-group">
+          <h3>🔑 Gemini API Key (Dahili / Özel)</h3>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            FenAI platformu dışına (örneğin GitHub Pages) kurduğunuzda Gemini modelinin çalışması için buraya kendi ücretsiz <strong>Google AI Studio</strong> API anahtarınızı girmelisiniz.
+          </p>
+          <div class="api-key-row">
+            <input type="password" id="gemini-key" placeholder="AIzaSy..." />
+            <button class="btn btn-primary btn-sm" onclick="saveKey('gemini')">Kaydet</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleKey('gemini-key')">👁</button>
+          </div>
+        </div>
+        
+        <!-- DEEPSEEK KEY -->
+        <div class="settings-group">
+          <h3>🔑 DeepSeek API Key (Özel)</h3>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            <strong>DeepSeek-V3</strong> modelini doğrudan kullanmak için anahtarınız. Bu anahtar girildiğinde Konu Anlatımı, Kavram Testi ve Çalışma Kağıtları bu motorla üretilir.
+          </p>
+          <div class="api-key-row">
+            <input type="password" id="deepseek-key" placeholder="sk-..." />
+            <button class="btn btn-primary btn-sm" onclick="saveKey('deepseek')">Kaydet</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleKey('deepseek-key')">👁</button>
+          </div>
+        </div>
+
+        <!-- OPENROUTER KEY -->
+        <div class="settings-group">
+          <h3>🔑 OpenRouter API Key (Özel)</h3>
+          <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:10px;">
+            <strong>Claude 3.5 Sonnet</strong>, <strong>DeepSeek-R1</strong> ve <strong>GPT-4o</strong> modellerine OpenRouter üzerinden bağlanmak için kullanılır. (Bağlamlı Soru, Yazılı Sınav ve Sürükle Bırak oyunları için gereklidir).
+          </p>
+          <div class="api-key-row">
+            <input type="password" id="openrouter-key" placeholder="sk-or-..." />
+            <button class="btn btn-primary btn-sm" onclick="saveKey('openrouter')">Kaydet</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleKey('openrouter-key')">👁</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">🗑️ Gizlilik ve Güvenlik</div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">Özel API anahtarlarınız tamamen tarayıcınızda (Local Storage) saklanır, hiçbir harici sunucuya iletilmez.</p>
+        <button class="btn btn-danger btn-sm" onclick="clearAllData()">Kayıtlı Tüm Verileri Temizle</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// TÜRKİYE YÜZYILI MAARİF MODELİ (TYMM 2024) MÜFREDAT VERİTABANI
+// ============================================================
+const MUFRE = {
+  5: {
+    "Ünite 1: Gökyüzündeki Komşularımız ve Biz": [
+      "Gökyüzündeki Komşumuz: Güneş (FB.5.1.1.1. Güneş'in yapısı ve dönme hareketi ile ilgili bilgileri toplayabilme)",
+      "Gökyüzündeki Komşumuz: Ay (FB.5.1.2.1. Ay'ın özellikleri, dönme ve dolanma hareketleri ile ilgili bilimsel çıkarım yapabilme)",
+      "Gökyüzündeki Komşumuz: Ay (FB.5.1.2.2. Ay'ın evrelerini temsil eden bilimsel model oluşturabilme)",
+      "Dünyamız ve Hareketleri (FB.5.1.3.1. Güneş, Dünya ve Ay'ın birbirlerine göre hareketlerini ve hacimsel büyüklüklerini temsil eden bilimsel model oluşturabilme)"
+    ],
+    "Ünite 2: Kuvveti Tanıyalım": [
+      "Kuvvet ve Kuvvetin Ölçülmesi (FB.5.2.1.1. Kuvveti büyüklüğü ile tanımlayabilme)",
+      "Kuvvet ve Kuvvetin Ölçülmesi (FB.5.2.1.2. Basit araç gereçler kullanarak bir dinamometre modeli tasarlayabilme)",
+      "Kütle ve Ağırlık İlişkisi (FB.5.2.2.1. Kütleye etki eden yer çekimi kuvvetini ağırlık olarak tanımlayabilme)",
+      "Sürtünme Kuvveti (FB.5.2.3.1. Sürtünme kuvvetinin çeşitli ortamlardaki etkilerine yönelik genelleme yapabilme)",
+      "Sürtünme Kuvveti (FB.5.2.3.2. Günlük yaşamda sürtünmeyi artırma veya azaltmaya yönelik bilimsel model tasarlayabilme)"
+    ],
+    "Ünite 3: Canlıların Yapısına Yolculuk": [
+      "Hücre ve Organelleri (FB.5.3.1.1. Bitki ve hayvan hücrelerini temel kısımları ve özellikleri açısından karşılaştırabilme)",
+      "Hücre ve Organelleri (FB.5.3.1.2. Hücre-doku-organ-sistem-organizma kavramlarını yapılandırabilme)",
+      "Destek ve Hareket Sistemi (FB.5.3.2.1. Destek ve hareket sistemine ait yapıları sınıflandırabilme)",
+      "Destek ve Hareket Sistemi (FB.5.3.2.2. Destek ve hareket sisteminin sağlığı için yapılması gerekenler konusunda bilgi toplayabilme)"
+    ],
+    "Ünite 4: Işığın Dünyası": [
+      "Işığın Yayılması (FB.5.4.1.1. Bir kaynaktan çıkan ışığın her yönde doğrusal bir yol izlediğini gözlem yoluyla açıklayabilme)",
+      "Işığın Madde ile Etkileşimi (FB.5.4.2.1. Maddeleri ışığı geçirme durumlarına göre sınıflandırabilme)",
+      "Tam Gölge (FB.5.4.3.1. Tam gölgeyi gözlemleyerek açıklayabilme)"
+    ],
+    "Ünite 5: Maddenin Doğası": [
+      "Maddenin Tanecikli Yapısı (FB.5.5.1.1. Maddeleri tanecikli, boşluklu ve hareketli yapısına göre sınıflandırabilme)",
+      "Isı ve Sıcaklık (FB.5.5.2.1. Isı ve sıcaklık kavramlarını karşılaştırabilme)",
+      "Isı ve Sıcaklık (FB.5.5.2.2. Sıcaklığı farklı olan sıvıların karıştırılması sonucu ısı alışverişi olduğuna yönelik bilimsel çıkarım yapabilme)",
+      "Maddenin Hal Değişimi (FB.5.5.3.1. Maddenin ısı etkisiyle hâl değiştirebileceğini bilimsel gözleme dayalı tahmin edebilme)",
+      "Madde ve Isı (FB.5.5.4.1. Maddeleri ısı iletimi bakımından sınıflandırabilme)",
+      "Madde ve Isı (FB.5.5.4.2. Isı yalıtımını gösteren model oluşturabilme)"
+    ],
+    "Ünite 6: Yaşamımızdaki Elektrik": [
+      "Devre Elemanlarının Sembol ile Gösterimi ve Devre Şemaları (FB.5.6.1.1. Bir elektrik devresindeki elemanların sembollerini sınıflandırabilme)",
+      "Devre Elemanlarının Sembol ile Gösterimi ve Devre Şemaları (FB.5.6.1.2. Şeması çizilen elektrik devresine uygun deney yapabilme)",
+      "Ampul Parlaklığını Etkileyen Değişkenler (FB.5.6.2.1. Bir elektrik devresindeki ampul parlaklığını etkileyen değişkenlerin neler olduğuna ilişkin hipotez oluşturabilme)"
+    ],
+    "Ünite 7: Sürdürülebilir Yaşam ve Geri Dönüşüm": [
+      "Evsel Atıklar ve Geri Dönüşüm (FB.5.7.1.1. Evsel atıklarda geri dönüştürülebilen ve dönüştürülemeyen maddeleri sınıflandırabilme)",
+      "Evsel Atıklar ve Geri Dönüşüm (FB.5.7.1.2. Kaynakların etkili kullanımı konusunda geri dönüşümün önemli olduğuna yönelik bilimsel çıkarımda bulunabilme)",
+      "Evsel Atıklar ve Geri Dönüşüm (FB.5.7.1.3. Yakın çevresinde atık yönetiminin uygulanabilirliğine ilişkin deneyimlerini yansıtabilme)"
+    ]
+  },
+  6: {
+    "Güneş Sistemi ve Tutulmalar": [
+      "Güneş Sistemi: FB.6.1.1.1. Güneş sistemindeki gezegenleri niteliklerine göre sınıflandırabilme",
+      "Güneş Sistemi: FB.6.1.1.2. Güneş sistemi ile ilgili bilimsel model oluşturabilme",
+      "Güneş ve Ay Tutulmaları: FB.6.1.2.1. Güneş ve Ay tutulması ile ilgili bilimsel çıkarım yapabilme",
+      "Güneş ve Ay Tutulmaları: FB.6.1.2.2. Güneş ve Ay tutulması ile ilgili bilimsel model oluşturabilme"
+    ],
+    "Kuvvetin Etkisinde Hareket": [
+      "Bileşke Kuvvet: FB.6.2.1.1. Bir cisme etki eden aynı doğrultudaki kuvvetler arasındaki ilişkileri açıklayarak bileşke kuvveti yapılandırabilme",
+      "Bileşke Kuvvet: FB.6.2.1.2. Dengelenmiş ve dengelenmemiş kuvvetlerin etkisi altındaki bir cismin hareketine yönelik deney yapabilme",
+      "Sabit Süratli ve Sabit Hızlı Hareket: FB.6.2.2.1. Sürat ve hız kavramlarını karşılaştırabilme"
+    ],
+    "Canlılarda Sistemler": [
+      "Bitki ve Hayvanlarda Üreme, Büyüme ve Gelişme: FB.6.3.1.1. Eşeyli ve eşeysiz üremeyi karşılaştırabilme",
+      "Bitki ve Hayvanlarda Üreme, Büyüme ve Gelişme: FB.6.3.1.2. Bitkilerde üreme, büyüme ve gelişme hakkında bilimsel çıkarım yapabilme",
+      "Bitki ve Hayvanlarda Üreme, Büyüme ve Gelişme: FB.6.3.1.3. Tohumun çimlenmesine etki eden faktörlere ilişkin hipotez oluşturabilme",
+      "Bitki ve Hayvanlarda Üreme, Büyüme ve Gelişme: FB.6.3.1.4. Hayvanlarda üreme, büyüme ve gelişme hakkında bilimsel çıkarım yapabilme",
+      "Bitki ve Hayvanlarda Üreme, Büyüme ve Gelişme: FB.6.3.1.5. İnsanda üremeyi sağlayan yapı ve organlar arasındaki ilişkileri çözümleyebilme",
+      "Denetleyici ve Düzenleyici Sistemler: FB.6.3.2.1. Sinir sisteminin görevlerini model üzerinde gözlemleyebilme",
+      "Denetleyici ve Düzenleyici Sistemler: FB.6.3.2.2. İç salgı bezlerinin vücut için önemini yapılandırabilme",
+      "Denetleyici ve Düzenleyici Sistemler: FB.6.3.2.3. Çocukluktan ergenliğe geçişte oluşan bedensel ve ruhsal değişimleri genelleyebilme",
+      "Denetleyici ve Düzenleyici Sistemler: FB.6.3.2.4. Denetleyici ve düzenleyici sistemlerin sağlığı için yapılması gerekenler konusunda bilgi toplayabilme"
+    ],
+    "Işığın Yansıması ve Renkler": [
+      "Işığın Yansıması: FB.6.4.1.1. Işığın farklı yüzeylerdeki yansıma olaylarına ilişkin bilimsel çıkarım yapabilme",
+      "Işığın Yansıması: FB.6.4.1.2. Işığın yansımasında gelen ışın, yansıyan ışın ve yüzeyin normali arasındaki ilişkiyi kanıt kullanarak açıklayabilme",
+      "Aynalar: FB.6.4.2.1. Günlük hayattaki ayna çeşitlerine ilişkin bilimsel çıkarım yapabilme",
+      "Işığın Soğurulması: FB.6.4.3.1. Işığın madde ile etkileşimi sonucunda soğurulabileceğini gözlemleyebilme",
+      "Işığın Soğurulması: FB.6.4.3.2. Beyaz ışığın tüm ışık renklerinin bileşiminden oluştuğuna ilişkin bilimsel çıkarım yapabilme",
+      "Işığın Soğurulması: FB.6.4.3.3. Cisimlerin siyah, beyaz ve renkli görünmesinin nedenini gözlem verileriyle açıklayabilme",
+      "Işığın Soğurulması: FB.6.4.3.4. Güneş enerjisinin günlük hayat ve teknolojideki yenilikçi uygulamalarına ilişkin eleştirel düşünebilme"
+    ],
+    "Maddeninin Ayırt Edici Özellikleri": [
+      "Genleşme ve Büzülme: FB.6.5.1.1. Isı etkisiyle maddelerin genleşip büzüleceğine yönelik bilimsel gözleme dayalı tahmin edebilme",
+      "Maddenin Hal Değişim Noktaları: FB.6.5.2.1. Maddelerin erime, donma ve kaynama noktasını gösteren deney yapabilme",
+      "Yoğunluk: FB.6.5.3.1. Yoğunluğa ilişkin hesaplamalar yaparak bilimsel veriye dayalı tahmin edebilme",
+      "Yoğunluk: FB.6.5.3.2. Deneyler sonucunda çeşitli maddelerin yoğunluklarına ilişkin tümdengelimsel akıl yürütebilme",
+      "Yoğunluk: FB.6.5.3.3. Suyun katı ve sıvı hâllerine ait yoğunlukları karşılaştırarak bu durumun canlılar için önemi hakkında bilimsel çıkarımlar yapabilme",
+      "Yoğunluk: FB.6.5.3.4. Yoğunluk ile ilgili bilimsel model oluşturabilme"
+    ],
+    "Elektriğin İletimi ve Direnç": [
+      "Elektriğin İletimi: FB.6.6.1.1. Maddelerin elektriği iletme durumlarını gösteren deney yapabilme",
+      "Elektriksel Direnç ve Bağlı Olduğu Faktörler: FB.6.6.2.1. Elektrik devresindeki ampul parlaklığının bağlı olduğu değişkenleri belirlemeye yönelik deney yapabilme",
+      "Elektriksel Direnç ve Bağlı Olduğu Faktörler: FB.6.6.2.2. Ayarlanabilir direncin ampulün parlaklığına etkilerine yönelik bilimsel çıkarım yapabilme"
+    ],
+    "Sürdürülebilir Yaşam ve Etkileşim": [
+      "Biyoçeşitlilik: FB.6.7.1.1. Biyoçeşitliliğin doğal yaşam için önemini sorgulayabilme",
+      "Biyoçeşitlilik: FB.6.7.1.2. Biyoçeşitliliği tehdit eden faktörleri araştırma verilerine dayalı tahmin edebilme",
+      "İnsan ve Çevre Etkileşimi: FB.6.7.2.1. Isınma amaçlı yakıt kullanımının insan ve çevre üzerine etkilerini tartışabilme",
+      "İnsan ve Çevre Etkileşimi: FB.6.7.2.2. Yakın çevresindeki veya ülkemizdeki bir çevre problemine ilişkin çözüm üretebilme"
+    ]
+  },
+  7: {
+    "Tema 1: Güneş Sistemi ve Ötesi (TYMM)": [
+      "Uzay araştırmaları, uzay istasyonları, yapay uydular ve uzay kirliliği sorunu",
+      "Yıldız kavramı, bulutsular (nebula), galaksiler (gök adalar) ve evrenin genişlemesi"
+    ],
+    "Tema 2: Hücre ve Bölünmeler (TYMM)": [
+      "Hücrenin yapısı, organellerin görevleri, bitki ve hayvan hücresi yapısal farkları",
+      "Kromozom, DNA, gen ve nükleotid ilişkisi",
+      "Mitoz bölünmenin aşamaları, kromozom sayısının sabit kalması ve canlılardaki önemi",
+      "Mayoz bölünmenin özellikleri, krossing-over olayı ve tür içi kalıtsal çeşitlilikteki rolü"
+    ],
+    "Tema 3: Kuvvet, İş ve Enerji İlişkisi (TYMM)": [
+      "Kütle ve ağırlık arasındaki kavramsal farklar, yer çekimi ivmesi",
+      "Fiziksel anlamda iş kavramı ve yapılan işi etkileyen dinamikler",
+      "Kinetik ve potansiyel enerji (çekim ve esneklik potansiyeli) matematiksel mantığı",
+      "Enerji dönüşümleri (sürtünme ile ısıya dönüşüm) ve enerjinin korunumu kanunu"
+    ],
+    "Tema 4: Saf Madde ve Karışımlar (TYMM)": [
+      "Atomun yapısı, proton, nötron, elektron kavramları ve atom teorilerinin gelişimi",
+      "Molekül kavramı, saf maddeler (ilk 18 element sembolü ve yaygın bileşikler)",
+      "Homojen ve heterojen karışımlar, çözünme mekanizması ve çözünme hızını etkileyenler",
+      "Karışımları ayırma yöntemleri (buharlaştırma, damıtma, yoğunluk farkı, süzme vb.)",
+      "Evsel atıkların geri dönüşümü, ekonomiye katkısı ve sürdürülebilirlik"
+    ],
+    "Tema 5: Işığın Madde ile Etkileşimi (TYMM)": [
+      "Işığın soğurulması, renklerin oluşumu, güneş panelleri ve temiz enerji dönüşümü",
+      "Aynalar (düz, çukur, tümsek) ve yansıma kurallarına göre oluşan görüntü özellikleri",
+      "Işığın kırılması, mercekler (ince ve kalın kenarlı) ve merceklerin göz kusurlarındaki tedavisi"
+    ],
+    "Tema 6: Canlılarda Üreme, Büyüme ve Gelişme (TYMM)": [
+      "İnsanda üreme organları, döllenme, zigot, embriyo, fetüs gelişim aşamaları",
+      "Bitki ve hayvanlarda üreme şekilleri (eşeyli/eşeysiz), başkalaşım geçiren canlılar"
+    ],
+    "Tema 7: Ampullerin Bağlanma Şekilleri (TYMM)": [
+      "Seri ve paralel bağlama özellikleri, ohm kanunu (akım, gerilim ve direnç ilişkisi)",
+      "Ampul sayısı ve bağlanma şeklinin ana kol akımı ve ampul ömrüne etkisi"
+    ]
+  },
+  8: {
+    "Ünite 1: Mevsimler ve İklim (LGS)": [
+      "Mevsimlerin oluşumu, eksen eğikliği ve Dünya'nın yıllık hareketi",
+      "İklim ve hava hareketleri farkları, yüksek ve alçak basınç alanları, rüzgarlar"
+    ],
+    "Ünite 2: DNA ve Genetik Kod (LGS)": [
+      "DNA yapısı, nükleotid dizilimleri ve kendini hatasız eşleme süreci",
+      "Mendel kalıtım kuralları, monohibrit çaprazlamalar ve akraba evliliği riskleri",
+      "Mutasyon, modifikasyon, adaptasyon karşılaştırmalı analizi",
+      "Biyoteknoloji uygulamaları, gen terapisinin tıp ve tarımdaki yeri"
+    ],
+    "Ünite 3: Basınç (LGS)": [
+      "Katılarda basınç ve dik kuvvet-yüzey alanı değişkenlerinin grafik analizi",
+      "Sıvılarda basınç, derinlik ve yoğunluk ilişkisi, Pascal prensibi ve endüstriyel kullanımları",
+      "Gazlarda basınç, açık hava basıncının Toriçelli deneyi ile tespiti"
+    ],
+    "Ünite 4: Madde ve Endüstri (LGS)": [
+      "Periyodik sistemin tarihçesi, elementlerin sınıflandırılması (metal, ametal, yarı metal)",
+      "Fiziksel ve kimyasal değişimler ile kimyasal tepkime denklemleri, kütle korunum hesabı",
+      "Asitler ve bazlar, indikatörler, pH aralıkları ve asit yağmurlarının ekolojik yıkımı",
+      "Maddenin ısı ile etkileşimi, öz ısı, erime, buharlaşma ısıları ve ısınma grafikleri",
+      "Türkiye'de kimya endüstrisinin gelişim süreçleri ve ihraç ürünleri"
+    ],
+    "Ünite 5: Basit Makineler (LGS)": [
+      "Kaldıraç tipleri, destek noktasına göre kuvvet kazancı hesaplamaları",
+      "Sabit, hareketli makaralar ve palanga sistemlerinde kuvvet kazancı ve yol kaybı",
+      "Eğik düzlem, çıkrık, vida, dişli çarklar ve kasnakların günlük yaşamdaki işlevleri"
+    ],
+    "Ünite 6: Enerji Dönüşümleri ve Çevre Bilimi (LGS)": [
+      "Besin zinciri yapısı, trofik düzeyler ve enerji piramidinde %10 aktarım kuralı",
+      "Fotosentez denklemi, klorofilin rolü, ışık rengi ve fotosentez hızı grafiği",
+      "Solunum (oksijenli, oksijensiz solunum) ve laktik asit/etil alcohol fermantasyonu",
+      "Madde döngüleri (karbon, su, oksijen, azot) ve ekolojik dengenin sürdürülebilirliği",
+      "Küresel iklim krizi, sera gazları, karbon ayak izi azaltma yolları"
+    ],
+    "Ünite 7: Elektrik Yükleri ve Elektrik Enerjisi (LGS)": [
+      "Elektriklenme çeşitleri (sürtünme, dokunma, etki) ve elektroskopun çalışması",
+      "Topraklama düzeneği ve paratonerler ile can güvenliği",
+      "Elektrik enerjisinin ısıya dönüşümü, sigorta sistemleri ve elektrikli ev aletleri tasarrufu"
+    ]
+  }
+};
+
+// ============================================================
+// SYSTEM INITIALIZATION
+// ============================================================
+window.onload = function() {
+  loadKeys();
+  ['konu','test','bag','ck','yaz','dd'].forEach(p => loadUnits(p));
+  initYaziliSorular();
+  checkApiStatus();
+  restoreCachedContent();
+};
+
+// Universal Engine Cache and Selection Management
+let currentEngine = 'gemini';
+
+function onEngineChange() {
+  currentEngine = document.getElementById('ai-engine-select').value;
+  const badge = document.getElementById('engine-badge');
+  
+  if (currentEngine === 'gemini') {
+    badge.textContent = 'Gemini Active';
+    badge.className = 'badge badge-success';
+  } else if (currentEngine === 'deepseek') {
+    badge.textContent = 'DeepSeek V3';
+    badge.className = 'badge badge-primary';
+  } else {
+    badge.textContent = 'OpenRouter AI';
+    badge.className = 'badge badge-warning';
+  }
+}
+
+// RESTORE CACHED CONTENT FOR CONVENIENCE
+function restoreCachedContent() {
+  ['konu','test','bag','ck','yaz'].forEach(mod => {
+    const cached = localStorage.getItem(`cache_fenai_${mod}`);
+    if (cached) {
+      processAndRenderOutput(`output-${mod}`, cached);
+    }
+  });
+}
+
+function loadUnits(prefix) {
+  const sinifEl = document.getElementById(prefix + '-sinif');
+  if (!sinifEl) return;
+  const sinif = sinifEl.value;
+  const uniteEl = document.getElementById(prefix + '-unite');
+  uniteEl.innerHTML = '';
+  
+  Object.keys(MUFRE[sinif]).forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u; opt.textContent = u;
+    uniteEl.appendChild(opt);
+  });
+  loadTopics(prefix);
+}
+
+function loadTopics(prefix) {
+  const sinifEl = document.getElementById(prefix + '-sinif');
+  if (!sinifEl) return;
+  const sinif = sinifEl.value;
+  const unite = document.getElementById(prefix + '-unite').value;
+  const topicEl = document.getElementById(prefix + '-topic');
+  topicEl.innerHTML = '';
+  
+  const topics = MUFRE[sinif][unite] || [];
+  topics.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t; opt.textContent = t;
+    topicEl.appendChild(opt);
+  });
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+const pageMeta = {
+  konu:    { title: '📖 Konu Anlatımı',    sub: 'Türkiye Yüzyılı Maarif Modeli müfredatına tam uyumlu konu anlatımı belgesi' },
+  test:    { title: '📋 Kavram Testi',      sub: 'Kazanım odaklı, açıklayıcı soru analizli kavram testleri' },
+  baglamli:{ title: '🧠 Bağlamlı Soru',    sub: 'Gerçek yaşam senaryolarına dayanan PISA/TIMSS tipi yeni nesil sorular' },
+  calisma: { title: '📄 Çalışma Kağıdı',   sub: 'Öğrencinin kavramları yapılandırmasını kolaylaştıracak şablon etkinlikler' },
+  yazili:  { title: '📝 Yazılı Sınav',     sub: 'Resmi sınav başlığı, puanlama şeması ve çözüm anahtarı olan yazılı sınav' },
+  surkle:  { title: '🎮 Sürükle-Bırak',   sub: 'Akıllı tahta ve mobil cihazlarda oynanabilecek sınıf içi etkinlikler' },
+  ayarlar: { title: '⚙️ Ayarlar',          sub: 'Yapay zeka modelleri için özel anahtar girişleri ve yapılandırma' }
+};
+
+function showPage(name, element) {
+  document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  
+  const activePage = document.getElementById('page-' + name);
+  if (activePage) activePage.style.display = 'block';
+  
+  // If element is not passed (e.g. programmatic call), find the corresponding nav-item
+  if (!element) {
+    const navItems = document.querySelectorAll('.nav-item');
+    // Find the one that matches showPage('[name]')
+    for (let item of navItems) {
+      if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${name}'`)) {
+        element = item;
+        break;
+      }
+    }
+  }
+
+  if (element) {
+    element.classList.add('active');
+  }
+  
+  const meta = pageMeta[name] || {};
+  document.getElementById('page-title').textContent = meta.title || '';
+  document.getElementById('page-sub').textContent = meta.sub || '';
+  
+  if (window.innerWidth <= 768) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ============================================================
+// API ROUTING ENGINE WITH EXPONENTIAL BACKOFF Retries
+// ============================================================
+async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen bilimleri öğretmenisin.", targetModule = "") {
+  // Canfenci Smart Routing Mode (Akıllı Görev Dağılımı)
+  if (currentEngine === 'smart' && targetModule) {
+    const geminiKey = localStorage.getItem('gemini_key');
+    const deepseekKey = localStorage.getItem('deepseek_key');
+    const openrouterKey = localStorage.getItem('openrouter_key');
+
+    // 1. 🧠 Bağlamlı Soru (PISA) -> DeepSeek-R1 (OpenRouter)
+    if (targetModule === 'bag') {
+      if (openrouterKey) {
+        updateRoutedBadge('bag', 'DeepSeek-R1 (OpenRouter)', 'badge-warning');
+        return await callOpenRouterDirect(prompt, 'deepseek/deepseek-r1');
+      } else {
+        updateRoutedBadge('bag', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
+        return await callGemini(prompt, systemPrompt);
+      }
+    }
+
+    // 2. 📝 Yazılı Sınav -> Claude 3.5 Sonnet (OpenRouter)
+    if (targetModule === 'yaz') {
+      if (openrouterKey) {
+        updateRoutedBadge('yaz', 'Claude 3.5 Sonnet (OpenRouter)', 'badge-warning');
+        return await callOpenRouterDirect(prompt, 'anthropic/claude-3.5-sonnet');
+      } else if (deepseekKey) {
+        updateRoutedBadge('yaz', 'DeepSeek-V3 (Yedek)', 'badge-primary');
+        return await callDeepSeekDirect(prompt, systemPrompt);
+      } else {
+        updateRoutedBadge('yaz', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
+        return await callGemini(prompt, systemPrompt);
+      }
+    }
+
+    // 3. 🎮 Sürükle-Bırak Oyunu -> GPT-4o (OpenRouter)
+    if (targetModule === 'dd') {
+      if (openrouterKey) {
+        updateRoutedBadge('dd', 'GPT-4o (OpenRouter)', 'badge-warning');
+        return await callOpenRouterDirect(prompt, 'openai/gpt-4o');
+      } else {
+        updateRoutedBadge('dd', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
+        return await callGemini(prompt, systemPrompt);
+      }
+    }
+
+    // 4. 📖 Konu Anlatımı -> DeepSeek-V3 (Direct)
+    if (targetModule === 'konu') {
+      if (deepseekKey) {
+        updateRoutedBadge('konu', 'DeepSeek-V3 (Direct API)', 'badge-primary');
+        return await callDeepSeekDirect(prompt, systemPrompt);
+      } else {
+        updateRoutedBadge('konu', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
+        return await callGemini(prompt, systemPrompt);
+      }
+    }
+
+    // 5. 📄 Çalışma Kağıdı -> DeepSeek-V3 (Direct)
+    if (targetModule === 'ck') {
+      if (deepseekKey) {
+        updateRoutedBadge('ck', 'DeepSeek-V3 (Direct API)', 'badge-primary');
+        return await callDeepSeekDirect(prompt, systemPrompt);
+      } else {
+        updateRoutedBadge('ck', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
+        return await callGemini(prompt, systemPrompt);
+      }
+    }
+
+    // 6. 📋 Kavram Testi -> Gemini 2.5 Flash (Dahili/Özel)
+    if (targetModule === 'test') {
+      updateRoutedBadge('test', 'Gemini 2.5 Flash', 'badge-success');
+      return await callGemini(prompt, systemPrompt);
+    }
+  }
+
+  // Fallback to manually selected engines if not in "smart" mode
+  if (currentEngine === 'gemini') {
+    if (targetModule) updateRoutedBadge(targetModule, 'Gemini 2.5 Flash', 'badge-success');
+    return await callGemini(prompt, systemPrompt);
+  } else if (currentEngine === 'deepseek') {
+    if (targetModule) updateRoutedBadge(targetModule, 'DeepSeek-V3', 'badge-primary');
+    return await callDeepSeekDirect(prompt, systemPrompt);
+  } else {
+    let model = 'openai/gpt-4o';
+    let badgeText = 'GPT-4o (OpenRouter)';
+    if (currentEngine === 'openrouter-r1') {
+      model = 'deepseek/deepseek-r1';
+      badgeText = 'DeepSeek-R1 (OpenRouter)';
+    }
+    if (currentEngine === 'openrouter-claude') {
+      model = 'anthropic/claude-3.5-sonnet';
+      badgeText = 'Claude 3.5 Sonnet (OpenRouter)';
+    }
+    if (targetModule) updateRoutedBadge(targetModule, badgeText, 'badge-warning');
+    return await callOpenRouterDirect(prompt, model);
+  }
+}
+
+// Utility to change the routed engine badge status in preview cards
+function updateRoutedBadge(module, text, className) {
+  const badge = document.getElementById(`routed-badge-${module}`);
+  if (badge) {
+    badge.textContent = text;
+    badge.className = `badge ${className}`;
+  }
+}
+
+// Direct Secure Sandbox Gemini Integration (Dual-Mode: Local Storage Key or Workspace Enjected Key)
+async function callGemini(prompt, systemInstruction) {
+  const localGeminiKey = localStorage.getItem('gemini_key');
+  const apiKey = localGeminiKey ? localGeminiKey : ""; // Tarayıcıda anahtar varsa onu kullanır, yoksa alttaki sandbox yapısına düşer.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  
+  const payload = {
+    contents: [{ parts: [{ text: prompt }] }],
+    systemInstruction: { parts: [{ text: systemInstruction }] }
+  };
+
+  let delay = 1000;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+        throw new Error("Boş bir yanıt döndü.");
+      }
+      const errText = await res.text();
+      throw new Error(errText || `Sunucu hatası kodu: ${res.status}`);
+    } catch (e) {
+      if (attempt === 4) {
+        throw new Error(`Gemini bağlantısı kurulamadı: ${e.message}. Anahtarınızın doğruluğunu veya internet bağlantınızı kontrol edin.`);
+      }
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Exponential Backoff: 1s, 2s, 4s, 8s, 16s
+    }
+  }
+}
+
+async function callDeepSeekDirect(prompt, systemPrompt) {
+  const key = localStorage.getItem('deepseek_key');
+  if (!key) {
+    showToast('DeepSeek API anahtarı girilmedi! Ayarlar bölümünden ekleyin.', 'error');
+    throw new Error('no key');
+  }
+  const res = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.6, max_tokens: 3500
+    })
+  });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+async function callOpenRouterDirect(prompt, model) {
+  const key = localStorage.getItem('openrouter_key');
+  if (!key) {
+    showToast('OpenRouter API anahtarı girilmedi! Ayarlar bölümünden ekleyin.', 'error');
+    throw new Error('no key');
+  }
+  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + key,
+      'HTTP-Referer': 'https://canfenci.github.io/fenai',
+      'X-Title': 'FenAI Panel'
+    },
+    body: JSON.stringify({
+      model: model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7, max_tokens: 3500
+    })
+  });
+  if (!res.ok) { const e = await res.text(); throw new Error(e); }
+  const data = await res.json();
+  return data.choices[0].message.content;
+}
+
+// Markdown & Scientific Notation Rendering Pipeline
+function processAndRenderOutput(elementId, rawText) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  if (!rawText || rawText.trim().length === 0) {
+    el.innerHTML = `<span class="output-placeholder">İçerik burada görünecek...</span>`;
+    return;
+  }
+
+  // Convert rich markdown to structural HTML via marked
+  let html = marked.parse(rawText);
+  el.innerHTML = html;
+
+  // Let KaTeX process all rendered formulas dynamically
+  if (typeof renderMathInElement === 'function') {
+    renderMathInElement(el, {
+      delimiters: [
+        {left: '$$', right: '$$', display: true},
+        {left: '$', right: '$', display: false},
+        {left: '\\(', right: '\\)', display: false},
+        {left: '\\[', right: '\\]', display: true}
+      ],
+      throwOnError: false
+    });
+  }
+}
+
+// ============================================================
+// MODÜL İŞLEMLERİ (GENERATIONS)
+// ============================================================
+
+async function generateKonu() {
+  const sinif = document.getElementById('konu-sinif').value;
+  const unite = document.getElementById('konu-unite').value;
+  const topic = document.getElementById('konu-topic').value;
+  const duzey = document.getElementById('konu-duzey').value;
+  const stil  = document.getElementById('konu-stil').value;
+  const not   = document.getElementById('konu-not').value;
+
+  const systemPrompt = `Sen uzman bir Türk fen bilimleri öğretmenisin. Hazırlayacağın konu anlatımı Türkiye Yüzyılı Maarif Modeli fen bilimleri öğretim programına (5. 6. ve 7. Sınıflar için TYMM 2024 güncel müfredatına; 8. Sınıf için ise LGS MEB müfredatına) %100 uyumlu olmalıdır.`;
+  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde şu kazanım için mükemmel bir konu anlatımı dokümanı hazırla:
+Ünite/Tema: ${unite}
+Kazanım Detayı: ${topic}
+Pedagojik Anlatım Düzeyi: ${duzey} düzeyi öğrencilerine uygun
+Ders Anlatım Stili: ${stil} formatında
+
+${not ? 'Ek Öğretmen Yönergesi / Vurgu Noktaları: ' + not : ''}
+
+Lütfen içeriği şu başlık düzeniyle yapılandır (Markdown h1-h2-h3 kullanarak):
+1. **🔬 Derse Giriş & Günlük Hayat Bağlantısı:** (Öğrencinin ilgisini çekecek merak uyandırıcı gerçek yaşam olayları veya deney senaryosu)
+2. **📖 Temel Kavramlar & Bilimsel Tanımlar:** (Gerekli tüm terimlerin ve kavramların net açıklaması)
+3. **💡 Detaylı Açıklamalar & Modelleme:** (Analojiler, benzetmeler ve açıklamalarla derinlemesine içerik anlatımı. Bilimsel ve matematiksel formülleri LaTeX formatında ($...$ veya $$...$$) yazın!)
+4. **⚠️ Önemli Ayrıntılar & Sık Karıştırılan Noktalar:** (Öğrencilerin kavram yanılgılarını önleyecek uyarılar)
+5. **🎯 Akılda Kalıcı Şifreler & Özet:** (Konuyu kolay hatırlatacak benzetmeler veya özet tablolar)`;
+
+  setLoading('konu', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'konu');
+    localStorage.setItem('cache_fenai_konu', result);
+    processAndRenderOutput('output-konu', result);
+    showToast('Konu anlatımı başarıyla üretildi ve görüntülendi!', 'success');
+  } catch(e) {
+    if (e.message !== 'no key') showToast('Hata: ' + e.message, 'error');
+  }
+  setLoading('konu', false);
+}
+
+async function generateTest() {
+  const sinif  = document.getElementById('test-sinif').value;
+  const unite  = document.getElementById('test-unite').value;
+  const topic  = document.getElementById('test-topic').value;
+  const sayi   = document.getElementById('test-sayi').value;
+  const tip    = document.getElementById('test-tip').value;
+  const zorluk = document.getElementById('test-zorluk').value;
+
+  const systemPrompt = `Sen profesyonel bir MEB Ölçme ve Değerlendirme uzmanı ve fen bilimleri öğretmenisin. Soruları TYMM 2024 (5, 6, 7. Sınıflar için) veya LGS (8. Sınıf için) müfredatının ruhuna uygun yeni nesil tarzda hazırlarsın.`;
+  const prompt = `Lütfen ${sinif}. Sınıf düzeyi için kavram kavrama testi hazırla.
+Ünite/Tema: ${unite}
+Kazanım: ${topic}
+İstenen Soru Sayısı: ${sayi} Adet
+Soru Tipi: ${tip}
+Zorluk Derecesi: ${zorluk}
+
+Her sorunun altında mutlaka doğru cevabı ve öğretici nitelikte ayrıntılı bilimsel açıklaması yer almalıdır.
+Lütfen soruları başlıklarla ve listelerle düzenli bir Markdown formatında üret. Bilimsel gösterimleri ve denklemleri mutlaka LaTeX ($...$) olarak biçimlendir.`;
+
+  setLoading('test', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'test');
+    localStorage.setItem('cache_fenai_test', result);
+    processAndRenderOutput('output-test', result);
+    showToast('Kavram testi başarıyla üretildi!', 'success');
+  } catch(e) {
+    if (e.message !== 'no key') showToast('Hata: ' + e.message, 'error');
+  }
+  setLoading('test', false);
+}
+
+async function generateBaglamli() {
+  const sinif    = document.getElementById('bag-sinif').value;
+  const unite    = document.getElementById('bag-unite').value;
+  const topic    = document.getElementById('bag-topic').value;
+  const senaryo  = document.getElementById('bag-senaryo').value;
+  const sayi     = document.getElementById('bag-sayi').value;
+
+  const systemPrompt = `Sen uluslararası fen okuryazarlığı ölçme değerlendirme (PISA/TIMSS) sınav komisyonu üyesi ve fen bilimleri editörüsün.`;
+  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde, PISA felsefesine ve bilimsel sorgulama becerilerine uygun bir senaryolu bağlam belgesi üret.
+Ünite/Tema: ${unite}
+Kazanım Odak Alanı: ${topic}
+Senaryo Ana Teması: ${senaryo}
+Hazırlanacak Bağlamlı Soru Adedi: ${sayi} adet
+
+Yapı:
+1. **📖 Senaryo Metni / Grafiksel Bağlam:** Günlük hayattan veya bilimsel bir araştırmadan alınan ilgi çekici, bilimsel argüman içeren 150-250 kelimelik bir metin yaz.
+2. **❓ Yeni Nesil Sorular:** Yazdığın bu senaryoya doğrudan bağlı, analiz, veri yorumlama ve problem çözme becerisini ölçen ${sayi} adet çoktan seçmeli soru.
+3. **🔑 Ayrıntılı Değerlendirme & Cevap Anahtarı:** Her sorunun analiz becerisine yönelik açıklayıcı çözümü.`;
+
+  setLoading('bag', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'bag');
+    localStorage.setItem('cache_fenai_bag', result);
+    processAndRenderOutput('output-bag', result);
+    showToast('Senaryolu bağlam soruları başarıyla üretildi!', 'success');
+  } catch(e) {
+    if (e.message !== 'no key') showToast('Hata: ' + e.message, 'error');
+  }
+  setLoading('bag', false);
+}
+
+async function generateCalisma() {
+  const sinif = document.getElementById('ck-sinif').value;
+  const unite = document.getElementById('ck-unite').value;
+  const topic = document.getElementById('ck-topic').value;
+  const tur   = document.getElementById('ck-tur').value;
+  const sayi  = document.getElementById('ck-sayi').value;
+
+  const systemPrompt = `Sen yaratıcı fen etkinlikleri tasarlayan pedagojik içerik geliştiricisisin.`;
+  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde, öğrencilerin bireysel veya akranlarıyla iş birliği içinde yapabileceği bir çalışma kağıdı belgesi oluştur.
+Ünite/Tema: ${unite}
+Kazanım: ${topic}
+Etkinlik Formatı: ${tur}
+Soru/Öğe Sayısı: ${sayi} adet
+
+Lütfen çalışma kağıdıma standart bir "Öğrenci Ad-Soyad-Sınıf-Okul" bilgi formu başlığı koyun. Etkinliklerin anlaşılır yönergelerini yazın ve en sonda öğretmen için bir "Çözüm Anahtarı" ekleyin.`;
+
+  setLoading('ck', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'ck');
+    localStorage.setItem('cache_fenai_ck', result);
+    processAndRenderOutput('output-ck', result);
+    showToast('Çalışma kağıdı şablonu başarıyla üretildi!', 'success');
+  } catch(e) {
+    if (e.message !== 'no key') showToast('Hata: ' + e.message, 'error');
+  }
+  setLoading('ck', false);
+}
+
+// ============================================================
+// DYNAMIC WRITTEN EXAM BUILDER
+// ============================================================
+let yaziliSorular = [];
+
+function initYaziliSorular() {
+  yaziliSorular = [
+    { tip: 'coktan', sayi: 5, puan: 4 },
+    { tip: 'acik-uc', sayi: 4, puan: 10 },
+    { tip: 'bosluk', sayi: 10, puan: 4 }
+  ];
+  renderYaziliSorular();
+}
+
+function renderYaziliSorular() {
+  const container = document.getElementById('yaz-sorular-list');
+  if (!container) return;
+  container.innerHTML = '';
+  let toplam = 0;
+  
+  yaziliSorular.forEach((s, i) => {
+    toplam += s.sayi * s.puan;
+    container.innerHTML += `
+      <div class="q-card" style="background: var(--surface2); padding: 15px; border-radius: 8px; margin-bottom: 12px; border:1px solid var(--border);">
+        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+          <select style="flex:2; min-width:140px; margin:0;" onchange="yaziliSorular[${i}].tip=this.value">
+            <option value="coktan" ${s.tip==='coktan'?'selected':''}>Çoktan Seçmeli (Test)</option>
+            <option value="dogru-yanlis" ${s.tip==='dogru-yanlis'?'selected':''}>Doğru-Yanlış</option>
+            <option value="bosluk" ${s.tip==='bosluk'?'selected':''}>Boşluk Doldurma</option>
+            <option value="acik-uc" ${s.tip==='acik-uc'?'selected':''}>Açık Uçlu (Klasik)</option>
+            <option value="eslestirme" ${s.tip==='eslestirme'?'selected':''}>Eşleştirme</option>
+          </select>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:0.75rem; color:var(--text-muted);">Soru Adedi:</span>
+            <input type="number" min="1" max="30" value="${s.sayi}" style="width:65px; padding:6px 10px;"
+              onchange="yaziliSorular[${i}].sayi=parseInt(this.value)||1; renderYaziliSorular()">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:0.75rem; color:var(--text-muted);">Soru Puanı:</span>
+            <input type="number" min="1" max="100" value="${s.puan}" style="width:65px; padding:6px 10px;"
+              onchange="yaziliSorular[${i}].puan=parseInt(this.value)||1; renderYaziliSorular()">
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="removeYaziliSoru(${i})" style="padding: 6px 12px;">✕ Sil</button>
+        </div>
+      </div>`;
+  });
+  document.getElementById('toplam-puan').textContent = toplam + ' Puan';
+}
+
+function addYaziliSoru() {
+  yaziliSorular.push({ tip: 'coktan', sayi: 5, puan: 4 });
+  renderYaziliSorular();
+}
+
+function removeYaziliSoru(i) {
+  yaziliSorular.splice(i, 1);
+  renderYaziliSorular();
+}
+
+async function generateYazili() {
+  const sinif = document.getElementById('yaz-sinif').value;
+  const unite = document.getElementById('yaz-unite').value;
+  const topic = document.getElementById('yaz-topic').value;
+
+  const soruYapisi = yaziliSorular.map(s => 
+    `- Bölüm: ${s.sayi} adet ${s.tip === 'coktan' ? 'Çoktan Seçmeli' : s.tip === 'acik-uc' ? 'Açık Uçlu Klasik' : s.tip === 'bosluk' ? 'Boşluk Doldurma' : s.tip === 'dogru-yanlis' ? 'Doğru-Yanlış' : 'Eşleştirme'} soru (Soru başı ${s.puan} puan)`
+  ).join('\n');
+
+  const toplam = yaziliSorular.reduce((a, s) => a + s.sayi * s.puan, 0);
+
+  const systemPrompt = `Sen MEB müfredat standartlarına tam uyumlu yazılı sınav hazırlayan kıdemli fen bilgisi zümre başkanısın.`;
+  const prompt = `Lütfen aşağıda detayları belirtilen resmi ${sinif}. Sınıf 1. Dönem Yazılı Sınav kağıdını ve çözüm anahtarını hazırla.
+Ünite/Tema: ${unite}
+Kapsanan Kazanımlar: ${topic}
+Sınav Toplam Puanı: ${toplam} Puan
+
+Yazılı Sınav Yapısal Şeması:
+${soruYapisi}
+
+Lütfen sınav belgesini şu standart yapıda oluştur:
+1. **Resmi Okul Sınav Başlığı** (İl-İlçe Millî Eğitim Müdürlüğü, Okul Adı, Öğrenci Bilgi Tablosu)
+2. **Öğrenci Yönergeleri & Süre Bilgisi**
+3. **Sınav Soruları Bölümleri** (Sırasıyla her bölümü harf olarak A, B, C şeklinde numaralandırın ve her sorunun yanına kaç puan olduğunu açıkça yazın)
+4. **Resmi Çözüm & Dereceli Puanlama Anahtarı** (Sınavın en alt kısmında yer alan, açık uçlu sorular için hangi adımlara kaçar puan verileceğini belirten detaylı dereceli anahtar)`;
+
+  setLoading('yaz', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'yaz');
+    localStorage.setItem('cache_fenai_yaz', result);
+    processAndRenderOutput('output-yaz', result);
+    showToast('Yazılı sınav evrakı başarıyla oluşturuldu!', 'success');
+  } catch(e) {
+    if (e.message !== 'no key') showToast('Hata: ' + e.message, 'error');
+  }
+  setLoading('yaz', false);
+}
+
+// ============================================================
+// TOUCH ADAPTIVE INTERACTIVE DRAG-DROP BUILDER & PLAYER
+// ============================================================
+async function generateDD() {
+  const sinif = document.getElementById('dd-sinif').value;
+  const unite = document.getElementById('dd-unite').value;
+  const topic = document.getElementById('dd-topic').value;
+  const tur   = document.getElementById('dd-tur').value;
+  const sayi  = document.getElementById('dd-sayi').value;
+
+  const systemPrompt = `Sen fen eğitim oyunları tasarlayan bir yazılım mühendisi ve fen bilgisi öğretmenisin.`;
+  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde şu konu için interaktif sürükle-bırak oyunu içeriği oluştur:
+Ünite/Tema: ${unite}
+Kazanım: ${topic}
+Oyun Mantığı: ${tur}
+Sınıflandırma Öğe Sayısı: ${sayi}
+
+Sadece aşağıdaki JSON şemasını içeren bir yanıt döndür. Başka hiçbir açıklama, karşılama cümlesi, markdown kod bloğu çiti (\`\`\`json veya \`\`\`) veya ekstra metin ekleme. Yanıtın doğrudan geçerli bir JSON objesi olmalıdır.
+
+JSON Şeması:
+{
+  "baslik": "Etkinlik Başlığı",
+  "aciklama": "Öğrenciye yönelik kısa, anlaşılır eğlenceli yönerge metni",
+  "tur": "${tur}",
+  "ogeler": ["öğe1", "öğe2", "öğe3", "öğe4", "öğe5", "öğe6", "öğe7", "öğe8"],
+  "kategoriler": ["kategoriA", "kategoriB"],
+  "cevaplar": {
+    "öğe1": "kategoriA",
+    "öğe2": "kategoriB",
+    "öğe3": "kategoriA",
+    "öğe4": "kategoriB",
+    "öğe5": "kategoriA",
+    "öğe6": "kategoriB",
+    "öğe7": "kategoriA",
+    "öğe8": "kategoriB"
+  }
+}`;
+
+  setLoading('dd', true);
+  try {
+    const result = await unifiedAiGenerate(prompt, systemPrompt, 'dd');
+    let jsonStr = result.trim();
+    
+    // Safety check: Extract raw JSON content if the model wrapped it inside markdown blocks
+    if (jsonStr.startsWith('```')) {
+      jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+    } else {
+      // Find absolute bounds of the JSON payload to prevent failure from conversational prefixes/suffixes
+      const start = jsonStr.indexOf('{');
+      const end = jsonStr.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        jsonStr = jsonStr.substring(start, end + 1);
+      }
+    }
+
+    const data = JSON.parse(jsonStr);
+    renderDragDrop(data);
+    showToast('Etkinlik başarıyla kurgulandı!', 'success');
+  } catch(e) {
+    console.error("JSON parse or call error: ", e);
+    showToast('Oyun verisi ayrıştırılamadı. Lütfen tekrar deneyin.', 'error');
+    document.getElementById('output-dd').innerHTML =
+      '<div class="output-box"><span class="output-placeholder">Etkinlik üretilemedi. Lütfen tekrar deneyin.</span></div>';
+  }
+  setLoading('dd', false);
+}
+
+// Memory tracking for placing items
+let ddPlacements = {};
+let selectedItemElement = null; // Touch-screen alternate selection variable
+
+// Helper function to safely Slugify categories with Turkish character translation for HTML IDs
+function slugify(text) {
+  const trMap = {
+    'ç': 'c', 'Ç': 'c',
+    'ğ': 'g', 'Ğ': 'g',
+    'ı': 'i', 'I': 'i',
+    'İ': 'i',
+    'ö': 'o', 'Ö': 'o',
+    'ş': 's', 'Ş': 's',
+    'ü': 'u', 'Ü': 'u'
+  };
+  let slug = text.toString().toLowerCase().trim();
+  for (let key in trMap) {
+    slug = slug.replace(new RegExp(key, 'g'), trMap[key]);
+  }
+  return slug
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // Remove all non-word characters except -
+    .replace(/\-\-+/g, '-')         // Replace multiple dashes with single -
+    .replace(/^-+/, '')             // Trim - from start of text
+    .replace(/-+$/, '');            // Trim - from end of text
+}
+
+function renderDragDrop(data) {
+  const container = document.getElementById('output-dd');
+  ddPlacements = {};
+  selectedItemElement = null;
+
+  let html = `
+    <div style="margin-bottom:16px;">
+      <h3 style="font-size:1.1rem; font-weight:700; color:var(--primary); margin-bottom:6px;">🎮 ${data.baslik}</h3>
+      <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;">${data.aciklama}</p>
+    </div>
+    <div class="dd-container">
+      <div class="dd-bank">
+        <div style="font-size:0.78rem; font-weight:800; color:var(--primary); margin-bottom:12px; text-transform:uppercase; letter-spacing:0.5px;">📦 Kart Havuzu (Kartı geri buraya bırakın veya tıklayın)</div>
+        <div id="dd-items" style="min-height: 80px;"
+             ondragover="event.preventDefault(); this.classList.add('dragover')"
+             ondragleave="this.classList.remove('dragover')"
+             ondrop="dropToBank(event)"
+             onclick="handleBankClick(event)">`;
+
+  data.ogeler.forEach(o => {
+    html += `<div class="dd-item" draggable="true" data-item="${o}" ondragstart="dragStart(event)" onclick="handleItemClick(event)">${o}</div>`;
+  });
+
+  html += `</div></div><div class="dd-zones">`;
+
+  data.kategoriler.forEach(k => {
+    const kSlug = slugify(k);
+    html += `
+      <div class="dd-zone" id="zone-${kSlug}"
+        ondragover="event.preventDefault(); this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')"
+        ondrop="dropItem(event,'${k}',${JSON.stringify(data.cevaplar)})"
+        onclick="handleZoneClick('${k}', ${JSON.stringify(data.cevaplar)})">
+        <div class="dd-zone-label">📂 ${k}</div>
+        <div class="dd-zone-items" id="items-in-${kSlug}"></div>
+      </div>`;
+  });
+
+  html += `</div></div>
+    <div class="btn-group" style="margin-top:20px;">
+      <button class="btn btn-success btn-sm" onclick="checkDD(${JSON.stringify(data.cevaplar)})">✅ Cevapları Kontrol Et</button>
+      <button class="btn btn-outline btn-sm" onclick="resetDD(${JSON.stringify(data)})">🔄 Oyunu Sıfırla</button>
+    </div>
+    <div id="dd-result" style="margin-top:14px; font-size:0.85rem;"></div>`;
+
+  container.innerHTML = html;
+}
+
+// Adaptive Drag-Drop handlers (Touch & Keyboard support fallbacks)
+function dragStart(e) {
+  // Clear selection classes and prepare data
+  e.dataTransfer.setData('text/plain', e.target.dataset.item);
+}
+
+function handleItemClick(e) {
+  e.stopPropagation();
+  // Clear any existing highlighted selection
+  document.querySelectorAll('.dd-item').forEach(el => el.classList.remove('selected-item'));
+  
+  if (selectedItemElement === e.currentTarget) {
+    selectedItemElement = null;
+  } else {
+    selectedItemElement = e.currentTarget;
+    e.currentTarget.classList.add('selected-item');
+    showToast(`"${e.currentTarget.dataset.item}" seçildi. Yerleştirmek istediğiniz kategoriye veya havuz alanına dokunun.`, 'info');
+  }
+}
+
+function handleZoneClick(zoneName, cevaplar) {
+  if (selectedItemElement) {
+    const item = selectedItemElement.dataset.item;
+    placeItemInZone(item, zoneName, cevaplar);
+    selectedItemElement = null;
+    document.querySelectorAll('.dd-item').forEach(el => el.classList.remove('selected-item'));
+  }
+}
+
+function dropItem(e, zone, cevaplar) {
+  e.preventDefault();
+  const zoneSlug = slugify(zone);
+  const zoneEl = document.getElementById('zone-' + zoneSlug);
+  if (zoneEl) {
+    zoneEl.classList.remove('dragover');
+  }
+  const item = e.dataTransfer.getData('text/plain');
+  if (item) {
+    placeItemInZone(item, zone, cevaplar);
+  }
+}
+
+// Tap/Click target to return a selected item to the starting pool
+function handleBankClick(e) {
+  if (selectedItemElement) {
+    const item = selectedItemElement.dataset.item;
+    returnToBank(item);
+    selectedItemElement = null;
+    document.querySelectorAll('.dd-item').forEach(el => el.classList.remove('selected-item'));
+  }
+}
+
+// Handle dropping an item back to starting pool
+function dropToBank(e) {
+  e.preventDefault();
+  const bankEl = document.getElementById('dd-items');
+  if (bankEl) {
+    bankEl.classList.remove('dragover');
+  }
+  const item = e.dataTransfer.getData('text/plain');
+  if (item) {
+    returnToBank(item);
+  }
+}
+
+// Shared logic to render card elements
+function createCardElement(item) {
+  const el = document.createElement('div');
+  el.className = 'dd-item';
+  el.draggable = true;
+  el.dataset.item = item;
+  el.textContent = item;
+  el.ondragstart = dragStart;
+  el.onclick = handleItemClick;
+  return el;
+}
+
+// Helper to remove any instances of a card across any zones
+function removeCardFromEverywhere(item) {
+  document.querySelectorAll(`[data-item="${item}"]`).forEach(el => el.remove());
+}
+
+// Reset all cards' evaluated feedback background styles
+function resetValidationStyles() {
+  document.querySelectorAll('.dd-item').forEach(el => {
+    el.style.background = ''; // Reverts to CSS primary color
+  });
+  const resultDiv = document.getElementById('dd-result');
+  if (resultDiv) {
+    resultDiv.innerHTML = '';
+  }
+}
+
+function returnToBank(item) {
+  resetValidationStyles();
+  
+  if (!ddPlacements[item]) return; // Already in the bank
+
+  removeCardFromEverywhere(item);
+
+  const bankContainer = document.getElementById('dd-items');
+  if (bankContainer) {
+    const el = createCardElement(item);
+    bankContainer.appendChild(el);
+  }
+  delete ddPlacements[item];
+}
+
+function placeItemInZone(item, zone, cevaplar) {
+  // Clear red/green evaluated feedback styles automatically as soon as user shifts any card
+  resetValidationStyles();
+
+  // Prevent duplicate insertion in same target zone
+  if (ddPlacements[item] === zone) return;
+
+  const zoneSlug = slugify(zone);
+  const targetZoneItemsEl = document.getElementById(`items-in-${zoneSlug}`);
+  if (!targetZoneItemsEl) return;
+
+  // Clean out the card from any zone or initial pool
+  removeCardFromEverywhere(item);
+
+  // Append new card into destination zone
+  const el = createCardElement(item);
+  targetZoneItemsEl.appendChild(el);
+  ddPlacements[item] = zone;
+}
+
+function checkDD(cevaplar) {
+  let dogru = 0, yanlis = 0;
+  const total = Object.keys(cevaplar).length;
+  
+  Object.entries(ddPlacements).forEach(([item, zone]) => {
+    const itemEl = document.querySelector(`[data-item="${item}"]`);
+    if (cevaplar[item] === zone) {
+      dogru++;
+      if (itemEl) itemEl.style.background = 'var(--secondary)';
+    } else {
+      yanlis++;
+      if (itemEl) itemEl.style.background = 'var(--danger)';
+    }
+  });
+
+  const pct = Math.round((dogru / total) * 100);
+  const resultDiv = document.getElementById('dd-result');
+  
+  if (Object.keys(ddPlacements).length < total) {
+    resultDiv.innerHTML = `
+      <div style="padding:12px; background:rgba(255,179,71,0.1); border-left:4px solid var(--warning); border-radius:6px; color:var(--warning);">
+        ⚠️ <strong>Tamamlanmadı:</strong> Lütfen tüm kartları kategorilere yerleştirdikten sonra kontrol edin! (${Object.keys(ddPlacements).length}/${total} kart yerleştirildi)
+      </div>`;
+    return;
+  }
+
+  resultDiv.innerHTML = `
+    <div style="padding:14px; background:${pct>=75 ? 'rgba(0,201,167,0.15)' : 'rgba(255,107,107,0.15)'}; border-left: 4px solid ${pct>=75 ? 'var(--secondary)' : 'var(--danger)'}; border-radius:8px;">
+      <strong style="font-size:0.95rem;">${pct >= 75 ? '🎉 Muazzam Başarı!' : '💪 Biraz Daha Gayret!'}</strong><br>
+      Tüm kartlar kontrol edildi: <strong>${dogru} Doğru</strong>, <strong>${yanlis} Yanlış</strong>. Başarı Oranı: <strong>%${pct}</strong>
+    </div>`;
+}
+
+function resetDD(data) {
+  renderDragDrop(data);
+}
+
+// ============================================================
+// SYSTEM UTILITIES, SETTINGS & EXPORTS
+// ============================================================
+function saveKey(type) {
+  const val = document.getElementById(type + '-key').value.trim();
+  if (!val) { showToast('Lütfen geçerli bir API anahtarı girin.', 'error'); return; }
+  localStorage.setItem(type + '_key', val);
+  checkApiStatus();
+  showToast(type === 'gemini' ? 'Gemini API anahtarı kaydedildi!' : type === 'deepseek' ? 'DeepSeek API anahtarı kaydedildi!' : 'OpenRouter API anahtarı kaydedildi!', 'success');
+}
+
+function loadKeys() {
+  const gemini = localStorage.getItem('gemini_key');
+  const ds = localStorage.getItem('deepseek_key');
+  const or = localStorage.getItem('openrouter_key');
+  if (gemini) document.getElementById('gemini-key').value = gemini;
+  if (ds) document.getElementById('deepseek-key').value = ds;
+  if (or) document.getElementById('openrouter-key').value = or;
+}
+
+function toggleKey(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function checkApiStatus() {
+  const gemini = localStorage.getItem('gemini_key');
+  const ds = localStorage.getItem('deepseek_key');
+  const or = localStorage.getItem('openrouter_key');
+  
+  const dotGemini = document.getElementById('dot-gemini');
+  const labelGemini = document.getElementById('label-gemini');
+  if (gemini) {
+    dotGemini.classList.add('active');
+    labelGemini.textContent = 'Gemini API (Özel Anahtar)';
+  } else {
+    dotGemini.classList.add('active'); // Bu ortamda her zaman aktif kalır, ancak başlığı günceller
+    labelGemini.textContent = 'Gemini API (Dahili)';
+  }
+  
+  document.getElementById('dot-deepseek').classList.toggle('active', !!ds);
+  document.getElementById('dot-openrouter').classList.toggle('active', !!or);
+}
+
+function clearAllData() {
+  if (confirm('Tüm API anahtarlarınız ve tarayıcı verileriniz silinecektir. Emin misiniz?')) {
+    localStorage.clear();
+    document.getElementById('gemini-key').value = '';
+    document.getElementById('deepseek-key').value = '';
+    document.getElementById('openrouter-key').value = '';
+    checkApiStatus();
+    showToast('Tüm veriler temizlendi.', 'info');
+  }
+}
+
+function setLoading(mod, state) {
+  const bar = document.getElementById('loading-' + mod);
+  if (bar) bar.style.display = state ? 'block' : 'none';
+  const btn = document.getElementById('btn-' + mod);
+  if (btn) {
+    btn.disabled = state;
+    if (state) {
+      // Sadece spinner içermeyen orijinal HTML metnini kaydederiz
+      if (!btn.dataset.originalText && !btn.innerHTML.includes('spinner')) {
+        btn.dataset.originalText = btn.innerHTML;
+      }
+      btn.innerHTML = `<span class="spinner"></span> Bilgi İşleniyor...`;
+    } else {
+      if (btn.dataset.originalText) {
+        btn.innerHTML = btn.dataset.originalText;
+      }
+    }
+  }
+}
+
+// Modern fallback clipboard utility
+function copyOutput(id) {
+  const textContainer = document.getElementById(id);
+  if (!textContainer || textContainer.innerText.includes('görünecek...')) {
+    showToast('Önce içerik üretmelisiniz!', 'error');
+    return;
+  }
+  
+  const textToCopy = textContainer.innerText;
+
+  // 1st Priority: Standard Modern Clipboard API (Safe fallback inside sandbox if rejected)
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(textToCopy)
+      .then(() => {
+        showToast('Tüm içerik panoya kopyalandı!', 'success');
+      })
+      .catch((err) => {
+        console.warn('Clipboard API blocked, trying execCommand fallback:', err);
+        executeLegacyCopy(textToCopy);
+      });
+  } else {
+    executeLegacyCopy(textToCopy);
+  }
+}
+
+function executeLegacyCopy(text) {
+  try {
+    const tempInput = document.createElement('textarea');
+    tempInput.value = text;
+    // Prevent scrolling down during append
+    tempInput.style.position = 'fixed';
+    tempInput.style.opacity = '0';
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(tempInput);
+    if (successful) {
+      showToast('Tüm içerik panoya kopyalandı!', 'success');
+    } else {
+      showToast('Kopyalama başarısız oldu.', 'error');
+    }
+  } catch (err) {
+    console.error('Legacy copy fallback failed:', err);
+    showToast('Kopyalama sırasında bir hata oluştu.', 'error');
+  }
+}
+
+async function downloadWord(outputId, filename) {
+  const el = document.getElementById(outputId);
+  if (!el || el.innerText.includes('görünecek...')) {
+    showToast('Önce indirmek istediğiniz içeriği üretin!', 'error'); 
+    return;
+  }
+  
+  const text = el.innerText;
+  try {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
+    const lines = text.split('\n');
+    
+    const children = lines.map(line => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('# ')) {
+        return new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.HEADING_1 });
+      }
+      if (trimmed.startsWith('## ')) {
+        return new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_2 });
+      }
+      if (trimmed.startsWith('### ')) {
+        return new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_3 });
+      }
+      return new Paragraph({
+        children: [new TextRun({ text: line })]
+      });
+    });
+
+    const doc = new Document({ sections: [{ children }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url; 
+    a.download = `${filename}_tymm.docx`; 
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Word (.docx) belgesi başarıyla indirildi!', 'success');
+  } catch(e) {
+    showToast('Word dönüştürme hatası: ' + e.message, 'error');
+  }
+}
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => { t.className = ''; }, 3500);
+}
+</script>
 </body>
 </html>
