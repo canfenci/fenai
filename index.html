@@ -13,6 +13,8 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <!-- PDF.js for client-side PDF text extraction -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
   <!-- PWA Manifest & Meta Tags -->
   <meta name="theme-color" content="#1a1a2e">
@@ -198,6 +200,15 @@
       border-radius: 6px;
     }
 
+    /* DRAG AND DROP FILE ZONE */
+    .drag-area {
+      border: 2px dashed var(--border); border-radius: 12px; padding: 24px;
+      text-align: center; transition: all 0.2s; cursor: pointer; background: rgba(255,255,255,0.01);
+    }
+    .drag-area:hover { border-color: var(--primary); background: rgba(108,99,255,0.03); }
+    .drag-area .drag-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+    .drag-area p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px; }
+
     /* SETTINGS & LOGS */
     .settings-group { margin-bottom: 24px; }
     .settings-group h3 { font-size: 0.9rem; font-weight: 700; color: var(--text); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
@@ -250,6 +261,10 @@
       <div class="api-dot" id="dot-openrouter"></div>
       <span>OpenRouter API (Özel)</span>
     </div>
+  </div>
+  <div class="nav-section">Havuz</div>
+  <div class="nav-item" onclick="showPage('kaynak', this)">
+    <span class="nav-icon">📂</span> Kaynak Havuzu
   </div>
   <div class="nav-section">Modüller</div>
   <div class="nav-item active" onclick="showPage('konu', this)">
@@ -309,10 +324,50 @@
 
   <div class="content">
 
+    <!-- ===== KAYNAK HAVUZU ===== -->
+    <div id="page-kaynak" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📂 Ders Kaynağı ve PDF Belgesi Ekle</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          Buraya bir ders kitabı bölümü, akademik makale veya kendi hazırladığınız ders notlarını ekleyebilirsiniz. Eklediğiniz kaynak sistem hafızasına alınır ve diğer tüm üretim modüllerinde bu kaynağa tam sadık kalınarak üretim yapılabilir.
+        </p>
+        <div class="form-group">
+          <label>Kaynak Başlığı</label>
+          <input type="text" id="kaynak-baslik" placeholder="Örn: 6. Sınıf Sindirim Sistemi Bölümü" />
+        </div>
+        <div class="form-group">
+          <label>Belge Yükle (PDF veya TXT)</label>
+          <div class="drag-area" onclick="document.getElementById('file-uploader').click()">
+            <span class="drag-icon">📄</span>
+            <p>Bilgisayarınızdan bir ders notu, TXT veya PDF seçmek için tıklayın.</p>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Maksimum dosya boyutu 10MB (Client-side PDF parsing)</span>
+            <input type="file" id="file-uploader" accept=".pdf,.txt" onchange="handleFileUpload(event)" style="display: none;" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Kaynak Metni İçeriği</label>
+          <textarea id="kaynak-metin" style="min-height: 250px;" placeholder="Yapay zekanın birebir temel alacağı döküman metnini buraya yapıştırın veya yukarıdan PDF/TXT dosyası seçerek otomatik çıkartın..."></textarea>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="saveSourceData()">💾 Kaynağı Kaydet</button>
+          <button class="btn btn-danger" onclick="clearSourceData()">🗑️ Kaynağı Kaldır / Temizle</button>
+        </div>
+      </div>
+    </div>
+
     <!-- ===== KONU ANLATIMI ===== -->
     <div id="page-konu" class="page-content">
       <div class="card">
         <div class="card-title">📚 Müfredat Seçimi (TYMM 2024 Uyumlu)</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-konu" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-konu" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Konu Anlatımı Üret: <strong id="active-source-title-konu" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -381,6 +436,15 @@
     <div id="page-test" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">📋 Test Parametreleri</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-test" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-test" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Soruları Üret: <strong id="active-source-title-test" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -452,6 +516,15 @@
     <div id="page-baglamli" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">🧠 PISA Tarzı Senaryolu Bağlamlı Soru Üretici</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-bag" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-bag" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Bağlamlı Soru Üret: <strong id="active-source-title-bag" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -516,6 +589,15 @@
     <div id="page-calisma" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">📄 Çalışma Kağıdı Şablonları</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-ck" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-ck" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Etkinlikleri Üret: <strong id="active-source-title-ck" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -580,6 +662,15 @@
     <div id="page-yazili" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">📝 Yazılı Sınav Kompozisyon Yapısı</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-yaz" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-yaz" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Yazılı Sınav Üret: <strong id="active-source-title-yaz" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -636,6 +727,15 @@
     <div id="page-surkle" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">🎮 İnteraktif Sınıf Oyunu Oluşturucu</div>
+        
+        <!-- SOURCE INTEGRATION CONTAINER -->
+        <div class="form-group" id="use-source-container-dd" style="display:none; margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:600; color:var(--text);">
+            <input type="checkbox" id="use-source-dd" style="width:auto; margin:0;" />
+            <span>📂 Aktif Kaynağa Göre Oyun İçeriği Üret: <strong id="active-source-title-dd" style="color: var(--secondary);">Yüklenmedi</strong></span>
+          </label>
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label>Sınıf</label>
@@ -936,25 +1036,39 @@ const MUFRE = {
   }
 };
 
+// Raw content storage for high-fidelity markdown-to-word compilation
+const rawOutputs = {
+  konu: '',
+  test: '',
+  bag: '',
+  ck: '',
+  yaz: ''
+};
+
 // ============================================================
 // SYSTEM INITIALIZATION
 // ============================================================
 window.onload = function() {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
   loadKeys();
   ['konu','test','bag','ck','yaz','dd'].forEach(p => loadUnits(p));
   initYaziliSorular();
   checkApiStatus();
   restoreCachedContent();
+  refreshSourceStatus();
 };
 
 // Universal Engine Cache and Selection Management
-let currentEngine = 'gemini';
+let currentEngine = 'smart';
 
 function onEngineChange() {
   currentEngine = document.getElementById('ai-engine-select').value;
   const badge = document.getElementById('engine-badge');
   
-  if (currentEngine === 'gemini') {
+  if (currentEngine === 'smart') {
+    badge.textContent = 'Akıllı Akış Aktif';
+    badge.className = 'badge badge-success';
+  } else if (currentEngine === 'gemini') {
     badge.textContent = 'Gemini Active';
     badge.className = 'badge badge-success';
   } else if (currentEngine === 'deepseek') {
@@ -968,9 +1082,10 @@ function onEngineChange() {
 
 // RESTORE CACHED CONTENT FOR CONVENIENCE
 function restoreCachedContent() {
-  ['konu','test','bag','ck','yaz'].forEach(mod => {
+  ['konu','test','bag', 'ck','yaz'].forEach(mod => {
     const cached = localStorage.getItem(`cache_fenai_${mod}`);
     if (cached) {
+      rawOutputs[mod] = cached;
       processAndRenderOutput(`output-${mod}`, cached);
     }
   });
@@ -1011,6 +1126,7 @@ function loadTopics(prefix) {
 // NAVIGATION
 // ============================================================
 const pageMeta = {
+  kaynak:  { title: '📂 Kaynak Havuzu',   sub: 'Özel ders notları, PDF veya makaleleri sisteme ekleyin ogeler yönetin' },
   konu:    { title: '📖 Konu Anlatımı',    sub: 'Türkiye Yüzyılı Maarif Modeli müfredatına tam uyumlu konu anlatımı belgesi' },
   test:    { title: '📋 Kavram Testi',      sub: 'Kazanım odaklı, açıklayıcı soru analizli kavram testleri' },
   baglamli:{ title: '🧠 Bağlamlı Soru',    sub: 'Gerçek yaşam senaryolarına dayanan PISA/TIMSS tipi yeni nesil sorular' },
@@ -1024,13 +1140,13 @@ function showPage(name, element) {
   document.querySelectorAll('.page-content').forEach(p => p.style.display = 'none');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   
-  const activePage = document.getElementById('page-' + name);
+  const pageId = name === 'baglamli' ? 'baglamli' : name === 'surkle' ? 'surkle' : name;
+  const activePage = document.getElementById('page-' + pageId);
   if (activePage) activePage.style.display = 'block';
   
   // If element is not passed (e.g. programmatic call), find the corresponding nav-item
   if (!element) {
     const navItems = document.querySelectorAll('.nav-item');
-    // Find the one that matches showPage('[name]')
     for (let item of navItems) {
       if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${name}'`)) {
         element = item;
@@ -1060,6 +1176,9 @@ function toggleSidebar() {
 // API ROUTING ENGINE WITH EXPONENTIAL BACKOFF Retries
 // ============================================================
 async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen bilimleri öğretmenisin.", targetModule = "") {
+  // Check if Kaynak (Source) mode is checked and modify the prompt with contextual rules
+  const finalPrompt = getFinalPrompt(prompt, targetModule);
+
   // Canfenci Smart Routing Mode (Akıllı Görev Dağılımı)
   if (currentEngine === 'smart' && targetModule) {
     const geminiKey = localStorage.getItem('gemini_key');
@@ -1070,10 +1189,10 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
     if (targetModule === 'bag') {
       if (openrouterKey) {
         updateRoutedBadge('bag', 'DeepSeek-R1 (OpenRouter)', 'badge-warning');
-        return await callOpenRouterDirect(prompt, 'deepseek/deepseek-r1');
+        return await callOpenRouterDirect(finalPrompt, 'deepseek/deepseek-r1');
       } else {
         updateRoutedBadge('bag', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(finalPrompt, systemPrompt);
       }
     }
 
@@ -1081,13 +1200,13 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
     if (targetModule === 'yaz') {
       if (openrouterKey) {
         updateRoutedBadge('yaz', 'Claude 3.5 Sonnet (OpenRouter)', 'badge-warning');
-        return await callOpenRouterDirect(prompt, 'anthropic/claude-3.5-sonnet');
+        return await callOpenRouterDirect(finalPrompt, 'anthropic/claude-3.5-sonnet');
       } else if (deepseekKey) {
         updateRoutedBadge('yaz', 'DeepSeek-V3 (Yedek)', 'badge-primary');
-        return await callDeepSeekDirect(prompt, systemPrompt);
+        return await callDeepSeekDirect(finalPrompt, systemPrompt);
       } else {
         updateRoutedBadge('yaz', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(finalPrompt, systemPrompt);
       }
     }
 
@@ -1095,10 +1214,10 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
     if (targetModule === 'dd') {
       if (openrouterKey) {
         updateRoutedBadge('dd', 'GPT-4o (OpenRouter)', 'badge-warning');
-        return await callOpenRouterDirect(prompt, 'openai/gpt-4o');
+        return await callOpenRouterDirect(finalPrompt, 'openai/gpt-4o');
       } else {
         updateRoutedBadge('dd', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(finalPrompt, systemPrompt);
       }
     }
 
@@ -1106,10 +1225,10 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
     if (targetModule === 'konu') {
       if (deepseekKey) {
         updateRoutedBadge('konu', 'DeepSeek-V3 (Direct API)', 'badge-primary');
-        return await callDeepSeekDirect(prompt, systemPrompt);
+        return await callDeepSeekDirect(finalPrompt, systemPrompt);
       } else {
         updateRoutedBadge('konu', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(finalPrompt, systemPrompt);
       }
     }
 
@@ -1117,27 +1236,27 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
     if (targetModule === 'ck') {
       if (deepseekKey) {
         updateRoutedBadge('ck', 'DeepSeek-V3 (Direct API)', 'badge-primary');
-        return await callDeepSeekDirect(prompt, systemPrompt);
+        return await callDeepSeekDirect(finalPrompt, systemPrompt);
       } else {
         updateRoutedBadge('ck', 'Gemini 2.5 Flash (Yedek)', 'badge-success');
-        return await callGemini(prompt, systemPrompt);
+        return await callGemini(finalPrompt, systemPrompt);
       }
     }
 
     // 6. 📋 Kavram Testi -> Gemini 2.5 Flash (Dahili/Özel)
     if (targetModule === 'test') {
       updateRoutedBadge('test', 'Gemini 2.5 Flash', 'badge-success');
-      return await callGemini(prompt, systemPrompt);
+      return await callGemini(finalPrompt, systemPrompt);
     }
   }
 
   // Fallback to manually selected engines if not in "smart" mode
   if (currentEngine === 'gemini') {
     if (targetModule) updateRoutedBadge(targetModule, 'Gemini 2.5 Flash', 'badge-success');
-    return await callGemini(prompt, systemPrompt);
+    return await callGemini(finalPrompt, systemPrompt);
   } else if (currentEngine === 'deepseek') {
     if (targetModule) updateRoutedBadge(targetModule, 'DeepSeek-V3', 'badge-primary');
-    return await callDeepSeekDirect(prompt, systemPrompt);
+    return await callDeepSeekDirect(finalPrompt, systemPrompt);
   } else {
     let model = 'openai/gpt-4o';
     let badgeText = 'GPT-4o (OpenRouter)';
@@ -1150,7 +1269,7 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       badgeText = 'Claude 3.5 Sonnet (OpenRouter)';
     }
     if (targetModule) updateRoutedBadge(targetModule, badgeText, 'badge-warning');
-    return await callOpenRouterDirect(prompt, model);
+    return await callOpenRouterDirect(finalPrompt, model);
   }
 }
 
@@ -1161,6 +1280,29 @@ function updateRoutedBadge(module, text, className) {
     badge.textContent = text;
     badge.className = `badge ${className}`;
   }
+}
+
+// Dynamic contextual prompt wrapper
+function getFinalPrompt(prompt, moduleName) {
+  const checkbox = document.getElementById(`use-source-${moduleName}`);
+  const sourceText = localStorage.getItem('kaynak_metin');
+  
+  if (checkbox && checkbox.checked && sourceText) {
+    return `${prompt}
+    
+⚠️ ÖNEMLİ ÖĞRETMEN TALİMATI / KAYNAK ODAKLI MOD AKTİF:
+Bu içeriği üretirken SADECE ve KESİNLİKLE aşağıda verilen kaynak metni temel almalısın. Kaynakta bulunmayan hiçbir yabancı bilgiyi, teoriyi veya müfredat dışı kavramı ekleme. Kaynağa tamamen sadık kalarak, kazanımı bu kaynak metin doğrultusunda pedagojik olarak işle.
+
+KAYNAK METİN:
+"""
+${sourceMetinClean(sourceText)}
+"""`;
+  }
+  return prompt;
+}
+
+function sourceMetinClean(text) {
+  return text ? text.trim() : '';
 }
 
 // Direct Secure Sandbox Gemini Integration (Dual-Mode: Local Storage Key or Workspace Enjected Key)
@@ -1306,6 +1448,7 @@ Lütfen içeriği şu başlık düzeniyle yapılandır (Markdown h1-h2-h3 kullan
   setLoading('konu', true);
   try {
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'konu');
+    rawOutputs.konu = result;
     localStorage.setItem('cache_fenai_konu', result);
     processAndRenderOutput('output-konu', result);
     showToast('Konu anlatımı başarıyla üretildi ve görüntülendi!', 'success');
@@ -1326,7 +1469,7 @@ async function generateTest() {
   const systemPrompt = `Sen profesyonel bir MEB Ölçme ve Değerlendirme uzmanı ve fen bilimleri öğretmenisin. Soruları TYMM 2024 (5, 6, 7. Sınıflar için) veya LGS (8. Sınıf için) müfredatının ruhuna uygun yeni nesil tarzda hazırlarsın.`;
   const prompt = `Lütfen ${sinif}. Sınıf düzeyi için kavram kavrama testi hazırla.
 Ünite/Tema: ${unite}
-Kazanım: ${topic}
+Kapsanan Kazanımlar: ${topic}
 İstenen Soru Sayısı: ${sayi} Adet
 Soru Tipi: ${tip}
 Zorluk Derecesi: ${zorluk}
@@ -1337,6 +1480,7 @@ Lütfen soruları başlıklarla ve listelerle düzenli bir Markdown formatında 
   setLoading('test', true);
   try {
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'test');
+    rawOutputs.test = result;
     localStorage.setItem('cache_fenai_test', result);
     processAndRenderOutput('output-test', result);
     showToast('Kavram testi başarıyla üretildi!', 'success');
@@ -1368,6 +1512,7 @@ Yapı:
   setLoading('bag', true);
   try {
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'bag');
+    rawOutputs.bag = result;
     localStorage.setItem('cache_fenai_bag', result);
     processAndRenderOutput('output-bag', result);
     showToast('Senaryolu bağlam soruları başarıyla üretildi!', 'success');
@@ -1396,6 +1541,7 @@ Lütfen çalışma kağıdıma standart bir "Öğrenci Ad-Soyad-Sınıf-Okul" bi
   setLoading('ck', true);
   try {
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'ck');
+    rawOutputs.ck = result;
     localStorage.setItem('cache_fenai_ck', result);
     processAndRenderOutput('output-ck', result);
     showToast('Çalışma kağıdı şablonu başarıyla üretildi!', 'success');
@@ -1493,6 +1639,7 @@ Lütfen sınav belgesini şu standart yapıda oluştur:
   setLoading('yaz', true);
   try {
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'yaz');
+    rawOutputs.yaz = result;
     localStorage.setItem('cache_fenai_yaz', result);
     processAndRenderOutput('output-yaz', result);
     showToast('Yazılı sınav evrakı başarıyla oluşturuldu!', 'success');
@@ -1545,11 +1692,9 @@ JSON Şeması:
     const result = await unifiedAiGenerate(prompt, systemPrompt, 'dd');
     let jsonStr = result.trim();
     
-    // Safety check: Extract raw JSON content if the model wrapped it inside markdown blocks
     if (jsonStr.startsWith('```')) {
       jsonStr = jsonStr.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
     } else {
-      // Find absolute bounds of the JSON payload to prevent failure from conversational prefixes/suffixes
       const start = jsonStr.indexOf('{');
       const end = jsonStr.lastIndexOf('}');
       if (start !== -1 && end !== -1 && end > start) {
@@ -1646,13 +1791,11 @@ function renderDragDrop(data) {
 
 // Adaptive Drag-Drop handlers (Touch & Keyboard support fallbacks)
 function dragStart(e) {
-  // Clear selection classes and prepare data
   e.dataTransfer.setData('text/plain', e.target.dataset.item);
 }
 
 function handleItemClick(e) {
   e.stopPropagation();
-  // Clear any existing highlighted selection
   document.querySelectorAll('.dd-item').forEach(el => el.classList.remove('selected-item'));
   
   if (selectedItemElement === e.currentTarget) {
@@ -1753,20 +1896,16 @@ function returnToBank(item) {
 }
 
 function placeItemInZone(item, zone, cevaplar) {
-  // Clear red/green evaluated feedback styles automatically as soon as user shifts any card
   resetValidationStyles();
 
-  // Prevent duplicate insertion in same target zone
   if (ddPlacements[item] === zone) return;
 
   const zoneSlug = slugify(zone);
   const targetZoneItemsEl = document.getElementById(`items-in-${zoneSlug}`);
   if (!targetZoneItemsEl) return;
 
-  // Clean out the card from any zone or initial pool
   removeCardFromEverywhere(item);
 
-  // Append new card into destination zone
   const el = createCardElement(item);
   targetZoneItemsEl.appendChild(el);
   ddPlacements[item] = zone;
@@ -1810,6 +1949,109 @@ function resetDD(data) {
 }
 
 // ============================================================
+// KAYNAK YÖNETİMİ & PDF METİN OKUMA
+// ============================================================
+async function handleFileUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const textArea = document.getElementById('kaynak-metin');
+  const titleInput = document.getElementById('kaynak-baslik');
+  const cleanName = file.name.replace(/\.[^/.]+$/, "");
+  
+  titleInput.value = cleanName;
+
+  if (file.type === "application/pdf") {
+    showToast("PDF metni çıkartılıyor, lütfen bekleyin...", "info");
+    try {
+      const extractedText = await extractTextFromPDF(file);
+      textArea.value = extractedText;
+      showToast("PDF içeriği başarıyla çıkartıldı!", "success");
+    } catch (e) {
+      console.error(e);
+      showToast("PDF okunurken hata oluştu: " + e.message, "error");
+    }
+  } else if (file.type === "text/plain") {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      textArea.value = e.target.result;
+      showToast("Metin dosyası yüklendi!", "success");
+    };
+    reader.readAsText(file);
+  } else {
+    showToast("Lütfen sadece PDF veya TXT dosyası yükleyin.", "error");
+  }
+}
+
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+  const pdf = await loadingTask.promise;
+  let fullText = '';
+  
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items.map(item => item.str).join(' ');
+    fullText += pageText + '\n';
+  }
+  return fullText;
+}
+
+function saveSourceData() {
+  const title = document.getElementById('kaynak-baslik').value.trim();
+  const text = document.getElementById('kaynak-metin').value.trim();
+
+  if (!title || !text) {
+    showToast('Lütfen başlık ve kaynak metni alanlarını doldurun!', 'error');
+    return;
+  }
+
+  localStorage.setItem('kaynak_baslik', title);
+  localStorage.setItem('kaynak_metin', text);
+  
+  refreshSourceStatus();
+  showToast('Kaynak başarıyla kaydedildi! Modüllerden "Aktif Kaynağı Temel Al"ı seçebilirsiniz.', 'success');
+}
+
+function clearSourceData() {
+  localStorage.removeItem('kaynak_baslik');
+  localStorage.removeItem('kaynak_metin');
+  
+  document.getElementById('kaynak-baslik').value = '';
+  document.getElementById('kaynak-metin').value = '';
+  document.getElementById('file-uploader').value = '';
+
+  refreshSourceStatus();
+  showToast('Kayıtlı kaynak başarıyla kaldırıldı.', 'info');
+}
+
+function refreshSourceStatus() {
+  const sourceTitle = localStorage.getItem('kaynak_baslik');
+  const sourceMetin = localStorage.getItem('kaynak_metin');
+  const mods = ['konu', 'test', 'bag', 'ck', 'yaz', 'dd'];
+  
+  const hasSource = !!(sourceTitle && sourceMetin);
+  
+  mods.forEach(mod => {
+    const container = document.getElementById(`use-source-container-${mod}`);
+    const titleEl = document.getElementById(`active-source-title-${mod}`);
+    if (container) {
+      if (hasSource) {
+        container.style.display = 'block';
+        if (titleEl) {
+          titleEl.textContent = sourceTitle;
+        }
+      } else {
+        container.style.display = 'none';
+        const checkbox = document.getElementById(`use-source-${mod}`);
+        if (checkbox) checkbox.checked = false;
+      }
+    }
+  });
+}
+
+// ============================================================
 // SYSTEM UTILITIES, SETTINGS & EXPORTS
 // ============================================================
 function saveKey(type) {
@@ -1845,7 +2087,7 @@ function checkApiStatus() {
     dotGemini.classList.add('active');
     labelGemini.textContent = 'Gemini API (Özel Anahtar)';
   } else {
-    dotGemini.classList.add('active'); // Bu ortamda her zaman aktif kalır, ancak başlığı günceller
+    dotGemini.classList.add('active');
     labelGemini.textContent = 'Gemini API (Dahili)';
   }
   
@@ -1854,11 +2096,12 @@ function checkApiStatus() {
 }
 
 function clearAllData() {
-  if (confirm('Tüm API anahtarlarınız ve tarayıcı verileriniz silinecektir. Emin misiniz?')) {
+  if (confirm('Tüm API anahtarlarınız, önbellekleriniz ve kaynak dökümanlarınız silinecektir. Emin misiniz?')) {
     localStorage.clear();
     document.getElementById('gemini-key').value = '';
     document.getElementById('deepseek-key').value = '';
     document.getElementById('openrouter-key').value = '';
+    clearSourceData();
     checkApiStatus();
     showToast('Tüm veriler temizlendi.', 'info');
   }
@@ -1871,7 +2114,6 @@ function setLoading(mod, state) {
   if (btn) {
     btn.disabled = state;
     if (state) {
-      // Sadece spinner içermeyen orijinal HTML metnini kaydederiz
       if (!btn.dataset.originalText && !btn.innerHTML.includes('spinner')) {
         btn.dataset.originalText = btn.innerHTML;
       }
@@ -1894,7 +2136,6 @@ function copyOutput(id) {
   
   const textToCopy = textContainer.innerText;
 
-  // 1st Priority: Standard Modern Clipboard API (Safe fallback inside sandbox if rejected)
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(textToCopy)
       .then(() => {
@@ -1913,7 +2154,6 @@ function executeLegacyCopy(text) {
   try {
     const tempInput = document.createElement('textarea');
     tempInput.value = text;
-    // Prevent scrolling down during append
     tempInput.style.position = 'fixed';
     tempInput.style.opacity = '0';
     document.body.appendChild(tempInput);
@@ -1931,34 +2171,151 @@ function executeLegacyCopy(text) {
   }
 }
 
+// HIGH-FIDELITY RAW MARKDOWN TO WORD COMPILER
+function parseMarkdownToDocx(markdownText) {
+  const { Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = docx;
+  const lines = markdownText.split('\n');
+  const docElements = [];
+  
+  let inTable = false;
+  let tableRows = [];
+  
+  // High-fidelity bold and italic parser
+  function parseInlineStyles(text) {
+    const runs = [];
+    const regex = /(\*\*|__)(.*?)\1|(\*|_)(.*?)\3/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = regex.exec(text)) !== null) {
+      const matchIndex = match.index;
+      if (matchIndex > lastIndex) {
+        runs.push(new TextRun({ text: text.substring(lastIndex, matchIndex) }));
+      }
+      
+      if (match[2]) { // Bold
+        runs.push(new TextRun({ text: match[2], bold: true }));
+      } else if (match[4]) { // Italic
+        runs.push(new TextRun({ text: match[4], italic: true }));
+      }
+      lastIndex = regex.lastIndex;
+    }
+    
+    if (lastIndex < text.length) {
+      runs.push(new TextRun({ text: text.substring(lastIndex) }));
+    }
+    
+    return runs.length > 0 ? runs : [new TextRun({ text: text })];
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Markdown Table parser
+    if (line.startsWith('|')) {
+      inTable = true;
+      const cols = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
+      
+      // Skip alignment lines like |---|---|
+      if (cols.every(c => c.match(/^:+|-+:*$/) || c === '')) {
+        continue;
+      }
+      
+      const cells = cols.map(col => new TableCell({
+        children: [new Paragraph({ children: parseInlineStyles(col) })],
+        padding: { top: 120, bottom: 120, left: 150, right: 150 }
+      }));
+      
+      tableRows.push(new TableRow({ children: cells }));
+      continue;
+    } else if (inTable) {
+      if (tableRows.length > 0) {
+        docElements.push(new Table({
+          rows: tableRows,
+          width: { size: 100, type: WidthType.PERCENTAGE }
+        }));
+        docElements.push(new Paragraph({ text: "" })); // spacing
+      }
+      inTable = false;
+      tableRows = [];
+    }
+    
+    if (line === '') {
+      continue;
+    }
+    
+    // Headings
+    if (line.startsWith('# ')) {
+      docElements.push(new Paragraph({
+        text: line.slice(2),
+        heading: HeadingLevel.HEADING_1,
+        spacing: { before: 240, after: 120 }
+      }));
+    } else if (line.startsWith('## ')) {
+      docElements.push(new Paragraph({
+        text: line.slice(3),
+        heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 }
+      }));
+    } else if (line.startsWith('### ')) {
+      docElements.push(new Paragraph({
+        text: line.slice(4),
+        heading: HeadingLevel.HEADING_3,
+        spacing: { before: 160, after: 80 }
+      }));
+    } 
+    // Lists
+    else if (line.startsWith('- ') || line.startsWith('* ') || line.startsWith('• ')) {
+      docElements.push(new Paragraph({
+        children: parseInlineStyles(line.slice(2)),
+        bullet: { level: 0 },
+        spacing: { before: 60, after: 60 }
+      }));
+    }
+    else if (/^\d+\.\s/.test(line)) {
+      const match = line.match(/^(\d+)\.\s(.*)/);
+      const num = match[1];
+      const content = match[2];
+      docElements.push(new Paragraph({
+        children: [
+          new TextRun({ text: num + ". ", bold: true }),
+          ...parseInlineStyles(content)
+        ],
+        spacing: { before: 60, after: 60 }
+      }));
+    }
+    // Normal Text Paragraphs
+    else {
+      docElements.push(new Paragraph({
+        children: parseInlineStyles(line),
+        spacing: { before: 120, after: 120 }
+      }));
+    }
+  }
+  
+  // Cleanup final table if still in progress
+  if (inTable && tableRows.length > 0) {
+    docElements.push(new Table({
+      rows: tableRows,
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    }));
+  }
+  
+  return docElements;
+}
+
 async function downloadWord(outputId, filename) {
-  const el = document.getElementById(outputId);
-  if (!el || el.innerText.includes('görünecek...')) {
-    showToast('Önce indirmek istediğiniz içeriği üretin!', 'error'); 
+  const mod = outputId.replace('output-', '');
+  const markdownText = rawOutputs[mod];
+  
+  if (!markdownText) {
+    showToast('İndirilecek içerik bulunamadı. Lütfen önce içerik üretin!', 'error');
     return;
   }
   
-  const text = el.innerText;
   try {
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = docx;
-    const lines = text.split('\n');
-    
-    const children = lines.map(line => {
-      const trimmed = line.trim();
-      if (trimmed.startsWith('# ')) {
-        return new Paragraph({ text: trimmed.slice(2), heading: HeadingLevel.HEADING_1 });
-      }
-      if (trimmed.startsWith('## ')) {
-        return new Paragraph({ text: trimmed.slice(3), heading: HeadingLevel.HEADING_2 });
-      }
-      if (trimmed.startsWith('### ')) {
-        return new Paragraph({ text: trimmed.slice(4), heading: HeadingLevel.HEADING_3 });
-      }
-      return new Paragraph({
-        children: [new TextRun({ text: line })]
-      });
-    });
-
+    const { Document, Packer } = docx;
+    const children = parseMarkdownToDocx(markdownText);
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
@@ -1970,15 +2327,9 @@ async function downloadWord(outputId, filename) {
     URL.revokeObjectURL(url);
     showToast('Word (.docx) belgesi başarıyla indirildi!', 'success');
   } catch(e) {
+    console.error(e);
     showToast('Word dönüştürme hatası: ' + e.message, 'error');
   }
-}
-
-function showToast(msg, type = 'info') {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'show ' + type;
-  setTimeout(() => { t.className = ''; }, 3500);
 }
 </script>
 </body>
