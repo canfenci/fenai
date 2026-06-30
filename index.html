@@ -22,6 +22,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <style>
+    /* (Stiller aynı, kısaltmak için buraya eklemedim, ama orijinal dosyadaki tüm stiller korunmalı) */
     :root {
       --primary: #6c63ff;
       --primary-dark: #574fd6;
@@ -2159,11 +2160,10 @@ function copyOutput(id) {
   }
 }
 
-// HIGH-FIDELITY RAW MARKDOWN TO WORD COMPILER
-function parseMarkdownToDocx(markdownText) {
-  const docxLib = window.docx || docx;
+// ---- DÜZELTİLMİŞ parseMarkdownToDocx (docxLib parametresi ile) ----
+function parseMarkdownToDocx(markdownText, docxLib) {
   if (!docxLib) {
-    throw new Error("Docx kütüphanesi yüklenemedi.");
+    throw new Error("Docx kütüphanesi parametresi geçilmedi.");
   }
   const { Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType } = docxLib;
   const lines = markdownText.split('\n');
@@ -2308,6 +2308,7 @@ function parseMarkdownToDocx(markdownText) {
   return docElements;
 }
 
+// ---- DÜZELTİLMİŞ downloadWord ----
 async function downloadWord(outputId, filename) {
   const mod = outputId.replace('output-', '');
   const markdownText = rawOutputs[mod];
@@ -2318,12 +2319,13 @@ async function downloadWord(outputId, filename) {
   }
   
   try {
-    const docxLib = window.docx || docx;
+    // Güvenli docx kütüphane kontrolü
+    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
     if (!docxLib) {
-      throw new Error("Docx kütüphanesi yüklenemedi.");
+      throw new Error("Docx kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
     }
     const { Document, Packer } = docxLib;
-    const children = parseMarkdownToDocx(markdownText);
+    const children = parseMarkdownToDocx(markdownText, docxLib);
     const doc = new Document({ sections: [{ children }] });
     const blob = await Packer.toBlob(doc);
     const url = URL.createObjectURL(blob);
