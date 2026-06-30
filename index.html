@@ -1150,7 +1150,6 @@ function showPage(name, element) {
   const activePage = document.getElementById('page-' + pageId);
   if (activePage) activePage.style.display = 'block';
   
-  // If element is not passed (e.g. programmatic call), find the corresponding nav-item
   if (!element) {
     const navItems = document.querySelectorAll('.nav-item');
     for (let item of navItems) {
@@ -1182,16 +1181,13 @@ function toggleSidebar() {
 // API ROUTING ENGINE WITH EXPONENTIAL BACKOFF Retries
 // ============================================================
 async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen bilimleri öğretmenisin.", targetModule = "") {
-  // Check if Kaynak (Source) mode is checked and modify the prompt with contextual rules
   const finalPrompt = getFinalPrompt(prompt, targetModule);
 
-  // Canfenci Smart Routing Mode (Akıllı Görev Dağılımı)
   if (currentEngine === 'smart' && targetModule) {
     const geminiKey = localStorage.getItem('gemini_key');
     const deepseekKey = localStorage.getItem('deepseek_key');
     const openrouterKey = localStorage.getItem('openrouter_key');
 
-    // 1. 🧠 Bağlamlı Soru (PISA) -> DeepSeek-R1 (OpenRouter)
     if (targetModule === 'bag') {
       if (openrouterKey) {
         updateRoutedBadge('bag', 'DeepSeek-R1 (OpenRouter)', 'badge-warning');
@@ -1202,7 +1198,6 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       }
     }
 
-    // 2. 📝 Yazılı Sınav -> Claude 3.5 Sonnet (OpenRouter)
     if (targetModule === 'yaz') {
       if (openrouterKey) {
         updateRoutedBadge('yaz', 'Claude 3.5 Sonnet (OpenRouter)', 'badge-warning');
@@ -1216,7 +1211,6 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       }
     }
 
-    // 3. 🎮 Sürükle-Bırak Oyunu -> GPT-4o (OpenRouter)
     if (targetModule === 'dd') {
       if (openrouterKey) {
         updateRoutedBadge('dd', 'GPT-4o (OpenRouter)', 'badge-warning');
@@ -1227,7 +1221,6 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       }
     }
 
-    // 4. 📖 Konu Anlatımı -> DeepSeek-V3 (Direct)
     if (targetModule === 'konu') {
       if (deepseekKey) {
         updateRoutedBadge('konu', 'DeepSeek-V3 (Direct API)', 'badge-primary');
@@ -1238,7 +1231,6 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       }
     }
 
-    // 5. 📄 Çalışma Kağıdı -> DeepSeek-V3 (Direct)
     if (targetModule === 'ck') {
       if (deepseekKey) {
         updateRoutedBadge('ck', 'DeepSeek-V3 (Direct API)', 'badge-primary');
@@ -1249,14 +1241,12 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
       }
     }
 
-    // 6. 📋 Kavram Testi -> Gemini 2.5 Flash (Dahili/Özel)
     if (targetModule === 'test') {
       updateRoutedBadge('test', 'Gemini 2.5 Flash', 'badge-success');
       return await callGemini(finalPrompt, systemPrompt);
     }
   }
 
-  // Fallback to manually selected engines if not in "smart" mode
   if (currentEngine === 'gemini') {
     if (targetModule) updateRoutedBadge(targetModule, 'Gemini 2.5 Flash', 'badge-success');
     return await callGemini(finalPrompt, systemPrompt);
@@ -1279,7 +1269,6 @@ async function unifiedAiGenerate(prompt, systemPrompt = "Sen uzman bir Türk fen
   }
 }
 
-// Utility to change the routed engine badge status in preview cards
 function updateRoutedBadge(module, text, className) {
   const badge = document.getElementById(`routed-badge-${module}`);
   if (badge) {
@@ -1288,7 +1277,6 @@ function updateRoutedBadge(module, text, className) {
   }
 }
 
-// Dynamic contextual prompt wrapper
 function getFinalPrompt(prompt, moduleName) {
   const checkbox = document.getElementById(`use-source-${moduleName}`);
   const sourceText = localStorage.getItem('kaynak_metin');
@@ -1311,10 +1299,9 @@ function sourceMetinClean(text) {
   return text ? text.trim() : '';
 }
 
-// Direct Secure Sandbox Gemini Integration (Dual-Mode: Local Storage Key or Workspace Enjected Key)
 async function callGemini(prompt, systemInstruction) {
   const localGeminiKey = localStorage.getItem('gemini_key');
-  const apiKey = localGeminiKey ? localGeminiKey : ""; // Tarayıcıda anahtar varsa onu kullanır, yoksa alttaki sandbox yapısına düşer.
+  const apiKey = localGeminiKey ? localGeminiKey : "";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
   
   const payload = {
@@ -1343,7 +1330,7 @@ async function callGemini(prompt, systemInstruction) {
         throw new Error(`Gemini bağlantısı kurulamadı: ${e.message}. Anahtarınızın doğruluğunu veya internet bağlantınızı kontrol edin.`);
       }
       await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // Exponential Backoff: 1s, 2s, 4s, 8s, 16s
+      delay *= 2;
     }
   }
 }
@@ -1405,11 +1392,9 @@ function processAndRenderOutput(elementId, rawText) {
     return;
   }
 
-  // Convert rich markdown to structural HTML via marked
   let html = marked.parse(rawText);
   el.innerHTML = html;
 
-  // Let KaTeX process all rendered formulas dynamically
   if (typeof renderMathInElement === 'function') {
     renderMathInElement(el, {
       delimiters: [
@@ -1720,11 +1705,9 @@ JSON Şeması:
   setLoading('dd', false);
 }
 
-// Memory tracking for placing items
 let ddPlacements = {};
-let selectedItemElement = null; // Touch-screen alternate selection variable
+let selectedItemElement = null;
 
-// Helper function to safely Slugify categories with Turkish character translation for HTML IDs
 function slugify(text) {
   const trMap = {
     'ç': 'c', 'Ç': 'c',
@@ -1740,11 +1723,11 @@ function slugify(text) {
     slug = slug.replace(new RegExp(key, 'g'), trMap[key]);
   }
   return slug
-    .replace(/\s+/g, '-')           // Replace spaces with -
-    .replace(/[^\w\-]+/g, '')       // Remove all non-word characters except -
-    .replace(/\-\-+/g, '-')         // Replace multiple dashes with single -
-    .replace(/^-+/, '')             // Trim - from start of text
-    .replace(/-+$/, '');            // Trim - from end of text
+    .replace(/\s+/g, '-')
+    .replace(/[^\w\-]+/g, '')
+    .replace(/\-\-+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 }
 
 function renderDragDrop(data) {
@@ -1795,7 +1778,6 @@ function renderDragDrop(data) {
   container.innerHTML = html;
 }
 
-// Adaptive Drag-Drop handlers (Touch & Keyboard support fallbacks)
 function dragStart(e) {
   e.dataTransfer.setData('text/plain', e.target.dataset.item);
 }
@@ -1835,7 +1817,6 @@ function dropItem(e, zone, cevaplar) {
   }
 }
 
-// Tap/Click target to return a selected item to the starting pool
 function handleBankClick(e) {
   if (selectedItemElement) {
     const item = selectedItemElement.dataset.item;
@@ -1845,7 +1826,6 @@ function handleBankClick(e) {
   }
 }
 
-// Handle dropping an item back to starting pool
 function dropToBank(e) {
   e.preventDefault();
   const bankEl = document.getElementById('dd-items');
@@ -1858,7 +1838,6 @@ function dropToBank(e) {
   }
 }
 
-// Shared logic to render card elements
 function createCardElement(item) {
   const el = document.createElement('div');
   el.className = 'dd-item';
@@ -1870,15 +1849,13 @@ function createCardElement(item) {
   return el;
 }
 
-// Helper to remove any instances of a card across any zones
 function removeCardFromEverywhere(item) {
   document.querySelectorAll(`[data-item="${item}"]`).forEach(el => el.remove());
 }
 
-// Reset all cards' evaluated feedback background styles
 function resetValidationStyles() {
   document.querySelectorAll('.dd-item').forEach(el => {
-    el.style.background = ''; // Reverts to CSS primary color
+    el.style.background = '';
   });
   const resultDiv = document.getElementById('dd-result');
   if (resultDiv) {
@@ -1889,7 +1866,7 @@ function resetValidationStyles() {
 function returnToBank(item) {
   resetValidationStyles();
   
-  if (!ddPlacements[item]) return; // Already in the bank
+  if (!ddPlacements[item]) return;
 
   removeCardFromEverywhere(item);
 
@@ -1955,7 +1932,7 @@ function resetDD(data) {
 }
 
 // ============================================================
-// KAYNAK YÖNETİMİ & PDF METİN OKUMA
+// KAYNAK YÖNETİMİ & PDF METİN OKUMA (DÜZELTİLMİŞ)
 // ============================================================
 async function handleFileUpload(event) {
   const file = event.target.files[0];
@@ -2007,6 +1984,7 @@ async function extractTextFromPDF(file) {
   return fullText;
 }
 
+// ---- DÜZELTİLMİŞ saveSourceData ----
 function saveSourceData() {
   const title = document.getElementById('kaynak-baslik').value.trim();
   const text = document.getElementById('kaynak-metin').value.trim();
@@ -2016,11 +1994,42 @@ function saveSourceData() {
     return;
   }
 
-  localStorage.setItem('kaynak_baslik', title);
-  localStorage.setItem('kaynak_metin', text);
+  try {
+    localStorage.setItem('kaynak_baslik', title);
+    localStorage.setItem('kaynak_metin', text);
+    refreshSourceStatus();
+    showToast('Kaynak başarıyla kaydedildi! Modüllerden "Aktif Kaynağı Temel Al"ı seçebilirsiniz.', 'success');
+  } catch (e) {
+    console.error('Kaydetme hatası:', e);
+    showToast('Kaynak kaydedilemedi: ' + e.message, 'error');
+  }
+}
+
+// ---- DÜZELTİLMİŞ refreshSourceStatus ----
+function refreshSourceStatus() {
+  const sourceTitle = localStorage.getItem('kaynak_baslik');
+  const sourceMetin = localStorage.getItem('kaynak_metin');
+  const mods = ['konu', 'test', 'bag', 'ck', 'yaz', 'dd'];
   
-  refreshSourceStatus();
-  showToast('Kaynak başarıyla kaydedildi! Modüllerden "Aktif Kaynağı Temel Al"ı seçebilirsiniz.', 'success');
+  const hasSource = !!(sourceTitle && sourceMetin);
+  
+  mods.forEach(mod => {
+    const container = document.getElementById(`use-source-container-${mod}`);
+    const titleEl = document.getElementById(`active-source-title-${mod}`);
+    const checkbox = document.getElementById(`use-source-${mod}`);
+    
+    if (container) {
+      if (hasSource) {
+        container.style.display = 'block';
+        if (titleEl) {
+          titleEl.textContent = sourceTitle;
+        }
+      } else {
+        container.style.display = 'none';
+        if (checkbox) checkbox.checked = false;
+      }
+    }
+  });
 }
 
 function clearSourceData() {
@@ -2033,31 +2042,6 @@ function clearSourceData() {
 
   refreshSourceStatus();
   showToast('Kayıtlı kaynak başarıyla kaldırıldı.', 'info');
-}
-
-function refreshSourceStatus() {
-  const sourceTitle = localStorage.getItem('kaynak_baslik');
-  const sourceMetin = localStorage.getItem('kaynak_metin');
-  const mods = ['konu', 'test', 'bag', 'ck', 'yaz', 'dd'];
-  
-  const hasSource = !!(sourceTitle && sourceMetin);
-  
-  mods.forEach(mod => {
-    const container = document.getElementById(`use-source-container-${mod}`);
-    const titleEl = document.getElementById(`active-source-title-${mod}`);
-    if (container) {
-      if (hasSource) {
-        container.style.display = 'block';
-        if (titleEl) {
-          titleEl.textContent = sourceTitle;
-        }
-      } else {
-        container.style.display = 'none';
-        const checkbox = document.getElementById(`use-source-${mod}`);
-        if (checkbox) checkbox.checked = false;
-      }
-    }
-  });
 }
 
 // ============================================================
@@ -2135,7 +2119,6 @@ function setLoading(mod, state) {
   }
 }
 
-// Standart, iframe kısıtlamalarına dayanıklı ve iOS/mobil uyumlu kopya aracı
 function copyOutput(id) {
   const textContainer = document.getElementById(id);
   if (!textContainer || textContainer.innerText.includes('görünecek...')) {
@@ -2153,10 +2136,9 @@ function copyOutput(id) {
     tempInput.style.left = '-9999px';
     document.body.appendChild(tempInput);
     
-    // iOS / Safari seçme yeteneği uyumluluğu
     const selected = document.getSelection().rangeCount > 0 ? document.getSelection().getRangeAt(0) : false;
     tempInput.select();
-    tempInput.setSelectionRange(0, 99999); // Mobil kısıtlamaları aşmak için
+    tempInput.setSelectionRange(0, 99999);
     
     const successful = document.execCommand('copy');
     document.body.removeChild(tempInput);
@@ -2187,7 +2169,6 @@ function parseMarkdownToDocx(markdownText) {
   const lines = markdownText.split('\n');
   const docElements = [];
   
-  // High-fidelity bold and italic parser
   function parseInlineStyles(text) {
     const runs = [];
     const regex = /(\*\*|__)(.*?)\1|(\*|_)(.*?)\3/g;
@@ -2200,9 +2181,9 @@ function parseMarkdownToDocx(markdownText) {
         runs.push(new TextRun({ text: text.substring(lastIndex, matchIndex) }));
       }
       
-      if (match[2]) { // Bold
+      if (match[2]) {
         runs.push(new TextRun({ text: match[2], bold: true }));
-      } else if (match[4]) { // Italic
+      } else if (match[4]) {
         runs.push(new TextRun({ text: match[4], italic: true }));
       }
       lastIndex = regex.lastIndex;
@@ -2222,12 +2203,10 @@ function parseMarkdownToDocx(markdownText) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       
-      // Markdown Table parser
       if (line.startsWith('|')) {
         inTable = true;
         const cols = line.split('|').map(c => c.trim()).filter((c, idx, arr) => idx > 0 && idx < arr.length - 1);
         
-        // Skip alignment lines like |---|---|
         if (cols.every(c => c.match(/^:+|-+:*$/) || c === '')) {
           continue;
         }
@@ -2246,7 +2225,7 @@ function parseMarkdownToDocx(markdownText) {
             rows: tableRows,
             width: { size: 100, type: WidthType.PERCENTAGE }
           }));
-          docElements.push(new Paragraph({ text: "" })); // spacing
+          docElements.push(new Paragraph({ text: "" }));
         }
         inTable = false;
         tableRows = [];
@@ -2257,7 +2236,6 @@ function parseMarkdownToDocx(markdownText) {
         continue;
       }
       
-      // Headings
       if (line.startsWith('# ')) {
         docElements.push(new Paragraph({
           text: line.slice(2),
@@ -2277,7 +2255,6 @@ function parseMarkdownToDocx(markdownText) {
           spacing: { before: 160, after: 80 }
         }));
       } 
-      // Lists
       else if (line.startsWith('- ') || line.startsWith('* ') || line.startsWith('• ')) {
         docElements.push(new Paragraph({
           children: parseInlineStyles(line.slice(2)),
@@ -2304,7 +2281,6 @@ function parseMarkdownToDocx(markdownText) {
           }));
         }
       }
-      // Normal Text Paragraphs
       else {
         docElements.push(new Paragraph({
           children: parseInlineStyles(line),
@@ -2313,7 +2289,6 @@ function parseMarkdownToDocx(markdownText) {
       }
     }
     
-    // Cleanup final table if still in progress
     if (inTable && tableRows.length > 0) {
       docElements.push(new Table({
         rows: tableRows,
@@ -2322,7 +2297,7 @@ function parseMarkdownToDocx(markdownText) {
     }
   } catch (parseError) {
     console.warn("Docx parser failed, degrading to plain paragraphs fallback:", parseError);
-    docElements.length = 0; // Reset elements
+    docElements.length = 0;
     lines.forEach(l => {
       docElements.push(new Paragraph({
         children: [new TextRun({ text: l })]
@@ -2363,6 +2338,20 @@ async function downloadWord(outputId, filename) {
     console.error(e);
     showToast('Word dönüştürme hatası: ' + e.message, 'error');
   }
+}
+
+// ============================================================
+// TOAST NOTIFICATION SYSTEM
+// ============================================================
+function showToast(msg, type = 'info') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = type;
+  toast.classList.add('show');
+  clearTimeout(toast._hideTimeout);
+  toast._hideTimeout = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 5000);
 }
 </script>
 </body>
