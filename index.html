@@ -6,7 +6,8 @@
   <title>FenAI – Canfenci Üretim Paneli (TYMM 2024)</title>
   
   <!-- External Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
+  <!-- docx kütüphanesi - güncel ve güvenilir CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.min.js"></script>
   <!-- Marked.js for Premium Markdown Rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- KaTeX for Scientific & Math Equation Rendering -->
@@ -22,7 +23,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <style>
-    /* (Stiller aynı, kısaltmak için buraya eklemedim, ama orijinal dosyadaki tüm stiller korunmalı) */
     :root {
       --primary: #6c63ff;
       --primary-dark: #574fd6;
@@ -2319,8 +2319,8 @@ async function downloadWord(outputId, filename) {
   }
   
   try {
-    // Güvenli docx kütüphane kontrolü
-    const docxLib = window.docx || (typeof docx !== 'undefined' ? docx : null);
+    // Kütüphane kontrolü - birden çok olası global değişkeni dene
+    const docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
     if (!docxLib) {
       throw new Error("Docx kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
     }
