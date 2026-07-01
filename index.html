@@ -6,8 +6,7 @@
   <title>FenAI – Canfenci Üretim Paneli (TYMM 2024)</title>
   
   <!-- External Libraries -->
-  <!-- docx kütüphanesi - güncel ve güvenilir CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
   <!-- Marked.js for Premium Markdown Rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- KaTeX for Scientific & Math Equation Rendering -->
@@ -491,6 +490,13 @@
             </select>
           </div>
         </div>
+
+        <!-- YENİ: Görsel/Tablo/Grafik İsteği -->
+        <div class="form-group">
+          <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+          <textarea id="test-gorsel" rows="3" placeholder="Örneğin: 'Soru 3'te bir tablo oluştur: Başlık: Madde Yoğunlukları, sütunlar: Madde, Yoğunluk (g/cm³), veriler: Su 1, Alkol 0.8, Demir 7.8' veya 'Bir grafik çiz: X ekseni zaman (dk), Y ekseni sıcaklık (°C), noktalar: (0,20), (5,40), (10,60)'"></textarea>
+        </div>
+
         <div class="btn-group">
           <button class="btn btn-primary" onclick="generateTest()" id="btn-test">
             ✨ Test Soruları Üret
@@ -564,6 +570,13 @@
             </select>
           </div>
         </div>
+
+        <!-- YENİ: Görsel/Tablo/Grafik İsteği -->
+        <div class="form-group">
+          <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+          <textarea id="bag-gorsel" rows="3" placeholder="Örneğin: 'Senaryo metninde bir tablo ver: Yıllara göre CO2 salınımı, sütunlar: Yıl, Salınım (milyon ton), veriler: 2010, 35; 2015, 42; 2020, 50' veya 'Bir grafik çiz: X ekseni haftalar, Y ekseni ağırlık (kg), noktalar: (1,70), (4,68), (8,65)'"></textarea>
+        </div>
+
         <div class="btn-group">
           <button class="btn btn-primary" onclick="generateBaglamli()" id="btn-bag">
             ✨ Bağlamlı Soru Üret
@@ -637,6 +650,13 @@
             </select>
           </div>
         </div>
+
+        <!-- YENİ: Görsel/Tablo/Grafik İsteği -->
+        <div class="form-group">
+          <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+          <textarea id="ck-gorsel" rows="3" placeholder="Örneğin: 'Boşluk doldurma etkinliğinde bir tablo kullan: Hücre organelleri ve görevleri tablosu, sütunlar: Organel, Görev, veriler: Mitokondri, Enerji üretimi; Ribozom, Protein sentezi'"></textarea>
+        </div>
+
         <div class="btn-group">
           <button class="btn btn-primary" onclick="generateCalisma()" id="btn-ck">
             ✨ Çalışma Kağıdı Üret
@@ -690,6 +710,12 @@
         <div class="form-group">
           <label>Konu / Kazanım Detayı</label>
           <select id="yaz-topic"></select>
+        </div>
+
+        <!-- YENİ: Görsel/Tablo/Grafik İsteği -->
+        <div class="form-group">
+          <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+          <textarea id="yaz-gorsel" rows="3" placeholder="Örneğin: 'Bir soruda grafik yorumlat: Sıcaklık-zaman grafiği, X: zaman (dk), Y: sıcaklık (°C), noktalar: (0,0), (5,20), (10,100), (15,100)'"></textarea>
         </div>
         
         <div id="yaz-sorular-container">
@@ -1302,8 +1328,13 @@ function sourceMetinClean(text) {
 
 async function callGemini(prompt, systemInstruction) {
   const localGeminiKey = localStorage.getItem('gemini_key');
-  const apiKey = localGeminiKey ? localGeminiKey : "";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+  if (!localGeminiKey) {
+    showToast('Gemini API anahtarı ayarlarda tanımlı değil! Lütfen geçerli bir anahtar girin.', 'error');
+    throw new Error('Gemini anahtarı eksik');
+  }
+  
+  // ✅ DOĞRU MODEL ADI: gemini-2.5-flash
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localGeminiKey}`;
   
   const payload = {
     contents: [{ parts: [{ text: prompt }] }],
@@ -1318,24 +1349,26 @@ async function callGemini(prompt, systemInstruction) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      
       if (res.ok) {
         const data = await res.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) return text;
-        throw new Error("Boş bir yanıt döndü.");
+        throw new Error("Boş yanıt alındı.");
       }
+      
       const errText = await res.text();
-      throw new Error(errText || `Sunucu hatası kodu: ${res.status}`);
+      throw new Error(`API hatası (${res.status}): ${errText}`);
     } catch (e) {
       if (attempt === 4) {
-        throw new Error(`Gemini bağlantısı kurulamadı: ${e.message}. Anahtarınızın doğruluğunu veya internet bağlantınızı kontrol edin.`);
+        showToast(`Gemini bağlantı hatası: ${e.message}`, 'error');
+        throw new Error(e);
       }
       await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
+      delay *= 2; // Exponential backoff
     }
   }
 }
-
 async function callDeepSeekDirect(prompt, systemPrompt) {
   const key = localStorage.getItem('deepseek_key');
   if (!key) {
@@ -1410,7 +1443,7 @@ function processAndRenderOutput(elementId, rawText) {
 }
 
 // ============================================================
-// MODÜL İŞLEMLERİ (GENERATIONS)
+// MODÜL İŞLEMLERİ (GENERATIONS) – Görsel/Tablo Desteği Eklendi
 // ============================================================
 
 async function generateKonu() {
@@ -1457,9 +1490,10 @@ async function generateTest() {
   const sayi   = document.getElementById('test-sayi').value;
   const tip    = document.getElementById('test-tip').value;
   const zorluk = document.getElementById('test-zorluk').value;
+  const gorsel = document.getElementById('test-gorsel').value.trim();
 
-  const systemPrompt = `Sen profesyonel bir MEB Ölçme ve Değerlendirme uzmanı ve fen bilimleri öğretmenisin. Soruları TYMM 2024 (5, 6, 7. Sınıflar için) veya LGS (8. Sınıf için) müfredatının ruhuna uygun yeni nesil tarzda hazırlarsın.`;
-  const prompt = `Lütfen ${sinif}. Sınıf düzeyi için kavram kavrama testi hazırla.
+  const systemPrompt = `Sen profesyonel bir MEB Ölçme ve Değerlendirme uzmanı ve fen bilimleri öğretmenisin. Soruları TYMM 2024 (5, 6, 7. Sınıflar için) veya LGS (8. Sınıf için) müfredatının ruhuna uygun **test kitabı formatında** (şık sayısı, cevap anahtarı, açıklama) hazırlarsın.`;
+  let prompt = `Lütfen ${sinif}. Sınıf düzeyi için kavram kavrama testi hazırla.
 Ünite/Tema: ${unite}
 Kapsanan Kazanımlar: ${topic}
 İstenen Soru Sayısı: ${sayi} Adet
@@ -1467,7 +1501,13 @@ Soru Tipi: ${tip}
 Zorluk Derecesi: ${zorluk}
 
 Her sorunun altında mutlaka doğru cevabı ve öğretici nitelikte ayrıntılı bilimsel açıklaması yer almalıdır.
-Lütfen soruları başlıklarla ve listelerle düzenli bir Markdown formatında üret. Bilimsel gösterimleri ve denklemleri mutlaka LaTeX ($...$) olarak biçimlendir.`;
+Lütfen soruları başlıklarla ve listelerle düzenli bir Markdown formatında üret. Bilimsel gösterimleri ve denklemleri mutlaka LaTeX ($...$) olarak biçimlendir.
+
+`;
+
+  if (gorsel) {
+    prompt += `\n📊 **Görsel/Tablo/Grafik İsteği:**\n${gorsel}\nLütfen bu isteğe uygun olarak ilgili sorularda tablo, grafik veya görsel açıklamaları Markdown tabloları veya açıklamalı metinler olarak ekleyin.\n`;
+  }
 
   setLoading('test', true);
   try {
@@ -1488,9 +1528,10 @@ async function generateBaglamli() {
   const topic    = document.getElementById('bag-topic').value;
   const senaryo  = document.getElementById('bag-senaryo').value;
   const sayi     = document.getElementById('bag-sayi').value;
+  const gorsel   = document.getElementById('bag-gorsel').value.trim();
 
-  const systemPrompt = `Sen uluslararası fen okuryazarlığı ölçme değerlendirme (PISA/TIMSS) sınav komisyonu üyesi ve fen bilimleri editörüsün.`;
-  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde, PISA felsefesine ve bilimsel sorgulama becerilerine uygun bir senaryolu bağlam belgesi üret.
+  const systemPrompt = `Sen uluslararası fen okuryazarlığı ölçme değerlendirme (PISA/TIMSS) sınav komisyonu üyesi ve fen bilimleri editörüsün. Soruları **test kitabı formatında** hazırla.`;
+  let prompt = `Lütfen ${sinif}. Sınıf düzeyinde, PISA felsefesine ve bilimsel sorgulama becerilerine uygun bir senaryolu bağlam belgesi üret.
 Ünite/Tema: ${unite}
 Kazanım Odak Alanı: ${topic}
 Senaryo Ana Teması: ${senaryo}
@@ -1499,7 +1540,12 @@ Hazırlanacak Bağlamlı Soru Adedi: ${sayi} adet
 Yapı:
 1. **📖 Senaryo Metni / Grafiksel Bağlam:** Günlük hayattan veya bilimsel bir araştırmadan alınan ilgi çekici, bilimsel argüman içeren 150-250 kelimelik bir metin yaz.
 2. **❓ Yeni Nesil Sorular:** Yazdığın bu senaryoya doğrudan bağlı, analiz, veri yorumlama ve problem çözme becerisini ölçen ${sayi} adet çoktan seçmeli soru.
-3. **🔑 Ayrıntılı Değerlendirme & Cevap Anahtarı:** Her sorunun analiz becerisine yönelik açıklayıcı çözümü.`;
+3. **🔑 Ayrıntılı Değerlendirme & Cevap Anahtarı:** Her sorunun analiz becerisine yönelik açıklayıcı çözümü.
+`;
+
+  if (gorsel) {
+    prompt += `\n📊 **Görsel/Tablo/Grafik İsteği:**\n${gorsel}\nLütfen bu isteğe uygun olarak ilgili senaryo veya sorularda tablo, grafik veya görsel açıklamaları Markdown tabloları veya açıklamalı metinler olarak ekleyin.\n`;
+  }
 
   setLoading('bag', true);
   try {
@@ -1520,15 +1566,21 @@ async function generateCalisma() {
   const topic = document.getElementById('ck-topic').value;
   const tur   = document.getElementById('ck-tur').value;
   const sayi  = document.getElementById('ck-sayi').value;
+  const gorsel = document.getElementById('ck-gorsel').value.trim();
 
-  const systemPrompt = `Sen yaratıcı fen etkinlikleri tasarlayan pedagojik içerik geliştiricisisin.`;
-  const prompt = `Lütfen ${sinif}. Sınıf düzeyinde, öğrencilerin bireysel veya akranlarıyla iş birliği içinde yapabileceği bir çalışma kağıdı belgesi oluştur.
+  const systemPrompt = `Sen yaratıcı fen etkinlikleri tasarlayan pedagojik içerik geliştiricisisin. Etkinlikleri **test kitabı formatında** hazırla.`;
+  let prompt = `Lütfen ${sinif}. Sınıf düzeyinde, öğrencilerin bireysel veya akranlarıyla iş birliği içinde yapabileceği bir çalışma kağıdı belgesi oluştur.
 Ünite/Tema: ${unite}
 Kazanım: ${topic}
 Etkinlik Formatı: ${tur}
 Soru/Öğe Sayısı: ${sayi} adet
 
-Lütfen çalışma kağıdıma standart bir "Öğrenci Ad-Soyad-Sınıf-Okul" bilgi formu başlığı koyun. Etkinliklerin anlaşılır yönergelerini yazın ve en sonda öğretmen için bir "Çözüm Anahtarı" ekleyin.`;
+Lütfen çalışma kağıdıma standart bir "Öğrenci Ad-Soyad-Sınıf-Okul" bilgi formu başlığı koyun. Etkinliklerin anlaşılır yönergelerini yazın ve en sonda öğretmen için bir "Çözüm Anahtarı" ekleyin.
+`;
+
+  if (gorsel) {
+    prompt += `\n📊 **Görsel/Tablo/Grafik İsteği:**\n${gorsel}\nLütfen bu isteğe uygun olarak etkinliklerde tablo, grafik veya görsel açıklamaları Markdown tabloları veya açıklamalı metinler olarak ekleyin.\n`;
+  }
 
   setLoading('ck', true);
   try {
@@ -1544,7 +1596,7 @@ Lütfen çalışma kağıdıma standart bir "Öğrenci Ad-Soyad-Sınıf-Okul" bi
 }
 
 // ============================================================
-// DYNAMIC WRITTEN EXAM BUILDER
+// DYNAMIC WRITTEN EXAM BUILDER (Görsel Desteği Eklendi)
 // ============================================================
 let yaziliSorular = [];
 
@@ -1606,6 +1658,7 @@ async function generateYazili() {
   const sinif = document.getElementById('yaz-sinif').value;
   const unite = document.getElementById('yaz-unite').value;
   const topic = document.getElementById('yaz-topic').value;
+  const gorsel = document.getElementById('yaz-gorsel').value.trim();
 
   const soruYapisi = yaziliSorular.map(s => 
     `- Bölüm: ${s.sayi} adet ${s.tip === 'coktan' ? 'Çoktan Seçmeli' : s.tip === 'acik-uc' ? 'Açık Uçlu Klasik' : s.tip === 'bosluk' ? 'Boşluk Doldurma' : s.tip === 'dogru-yanlis' ? 'Doğru-Yanlış' : 'Eşleştirme'} soru (Soru başı ${s.puan} puan)`
@@ -1613,8 +1666,8 @@ async function generateYazili() {
 
   const toplam = yaziliSorular.reduce((a, s) => a + s.sayi * s.puan, 0);
 
-  const systemPrompt = `Sen MEB müfredat standartlarına tam uyumlu yazılı sınav hazırlayan kıdemli fen bilgisi zümre başkanısın.`;
-  const prompt = `Lütfen aşağıda detayları belirtilen resmi ${sinif}. Sınıf 1. Dönem Yazılı Sınav kağıdını ve çözüm anahtarını hazırla.
+  const systemPrompt = `Sen MEB müfredat standartlarına tam uyumlu yazılı sınav hazırlayan kıdemli fen bilgisi zümre başkanısın. Sınavı **test kitabı formatında** hazırla.`;
+  let prompt = `Lütfen aşağıda detayları belirtilen resmi ${sinif}. Sınıf 1. Dönem Yazılı Sınav kağıdını ve çözüm anahtarını hazırla.
 Ünite/Tema: ${unite}
 Kapsanan Kazanımlar: ${topic}
 Sınav Toplam Puanı: ${toplam} Puan
@@ -1626,7 +1679,12 @@ Lütfen sınav belgesini şu standart yapıda oluştur:
 1. **Resmi Okul Sınav Başlığı** (İl-İlçe Millî Eğitim Müdürlüğü, Okul Adı, Öğrenci Bilgi Tablosu)
 2. **Öğrenci Yönergeleri & Süre Bilgisi**
 3. **Sınav Soruları Bölümleri** (Sırasıyla her bölümü harf olarak A, B, C şeklinde numaralandırın ve her sorunun yanına kaç puan olduğunu açıkça yazın)
-4. **Resmi Çözüm & Dereceli Puanlama Anahtarı** (Sınavın en alt kısmında yer alan, açık uçlu sorular için hangi adımlara kaçar puan verileceğini belirten detaylı dereceli anahtar)`;
+4. **Resmi Çözüm & Dereceli Puanlama Anahtarı** (Sınavın en alt kısmında yer alan, açık uçlu sorular için hangi adımlara kaçar puan verileceğini belirten detaylı dereceli anahtar)
+`;
+
+  if (gorsel) {
+    prompt += `\n📊 **Görsel/Tablo/Grafik İsteği:**\n${gorsel}\nLütfen bu isteğe uygun olarak ilgili sorularda tablo, grafik veya görsel açıklamaları Markdown tabloları veya açıklamalı metinler olarak ekleyin.\n`;
+  }
 
   setLoading('yaz', true);
   try {
@@ -1642,7 +1700,7 @@ Lütfen sınav belgesini şu standart yapıda oluştur:
 }
 
 // ============================================================
-// TOUCH ADAPTIVE INTERACTIVE DRAG-DROP BUILDER & PLAYER
+// TOUCH ADAPTIVE INTERACTIVE DRAG-DROP BUILDER & PLAYER (Aynı)
 // ============================================================
 async function generateDD() {
   const sinif = document.getElementById('dd-sinif').value;
@@ -1933,7 +1991,7 @@ function resetDD(data) {
 }
 
 // ============================================================
-// KAYNAK YÖNETİMİ & PDF METİN OKUMA (DÜZELTİLMİŞ)
+// KAYNAK YÖNETİMİ & PDF METİN OKUMA
 // ============================================================
 async function handleFileUpload(event) {
   const file = event.target.files[0];
@@ -1985,7 +2043,6 @@ async function extractTextFromPDF(file) {
   return fullText;
 }
 
-// ---- DÜZELTİLMİŞ saveSourceData ----
 function saveSourceData() {
   const title = document.getElementById('kaynak-baslik').value.trim();
   const text = document.getElementById('kaynak-metin').value.trim();
@@ -2006,7 +2063,6 @@ function saveSourceData() {
   }
 }
 
-// ---- DÜZELTİLMİŞ refreshSourceStatus ----
 function refreshSourceStatus() {
   const sourceTitle = localStorage.getItem('kaynak_baslik');
   const sourceMetin = localStorage.getItem('kaynak_metin');
@@ -2160,7 +2216,7 @@ function copyOutput(id) {
   }
 }
 
-// ---- DÜZELTİLMİŞ parseMarkdownToDocx (docxLib parametresi ile) ----
+// ---- parseMarkdownToDocx (Word dönüştürücü) ----
 function parseMarkdownToDocx(markdownText, docxLib) {
   if (!docxLib) {
     throw new Error("Docx kütüphanesi parametresi geçilmedi.");
@@ -2308,7 +2364,7 @@ function parseMarkdownToDocx(markdownText, docxLib) {
   return docElements;
 }
 
-// ---- DÜZELTİLMİŞ downloadWord ----
+// ---- downloadWord (Bekleme mekanizmalı) ----
 async function downloadWord(outputId, filename) {
   const mod = outputId.replace('output-', '');
   const markdownText = rawOutputs[mod];
@@ -2318,12 +2374,20 @@ async function downloadWord(outputId, filename) {
     return;
   }
   
+  let docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
+  let deneme = 0;
+  while (!docxLib && deneme < 5) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
+    deneme++;
+  }
+  
+  if (!docxLib) {
+    showToast('Docx kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin ve internet bağlantınızı kontrol edin.', 'error');
+    return;
+  }
+
   try {
-    // Kütüphane kontrolü - birden çok olası global değişkeni dene
-    const docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
-    if (!docxLib) {
-      throw new Error("Docx kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
-    }
     const { Document, Packer } = docxLib;
     const children = parseMarkdownToDocx(markdownText, docxLib);
     const doc = new Document({ sections: [{ children }] });
