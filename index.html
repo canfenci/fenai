@@ -6,8 +6,7 @@
   <title>FenAI – Canfenci Üretim Paneli (TYMM 2024)</title>
   
   <!-- External Libraries -->
-  <!-- docx kütüphanesi - güncel ve güvenilir CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
   <!-- Marked.js for Premium Markdown Rendering -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- KaTeX for Scientific & Math Equation Rendering -->
@@ -2160,7 +2159,7 @@ function copyOutput(id) {
   }
 }
 
-// ---- DÜZELTİLMİŞ parseMarkdownToDocx (docxLib parametresi ile) ----
+// ---- GÜNCELLENMİŞ parseMarkdownToDocx ----
 function parseMarkdownToDocx(markdownText, docxLib) {
   if (!docxLib) {
     throw new Error("Docx kütüphanesi parametresi geçilmedi.");
@@ -2308,7 +2307,7 @@ function parseMarkdownToDocx(markdownText, docxLib) {
   return docElements;
 }
 
-// ---- DÜZELTİLMİŞ downloadWord ----
+// ---- GÜNCELLENMİŞ downloadWord (Bekleme mekanizmalı) ----
 async function downloadWord(outputId, filename) {
   const mod = outputId.replace('output-', '');
   const markdownText = rawOutputs[mod];
@@ -2318,12 +2317,21 @@ async function downloadWord(outputId, filename) {
     return;
   }
   
+  // Kütüphane yüklenene kadar bekle (en fazla 5 kez dene, 500 ms aralıkla)
+  let docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
+  let deneme = 0;
+  while (!docxLib && deneme < 5) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
+    deneme++;
+  }
+  
+  if (!docxLib) {
+    showToast('Docx kütüphanesi yüklenemedi. Lütfen sayfayı yenileyin ve internet bağlantınızı kontrol edin.', 'error');
+    return;
+  }
+
   try {
-    // Kütüphane kontrolü - birden çok olası global değişkeni dene
-    const docxLib = window.docx || window.Docx || (typeof docx !== 'undefined' ? docx : null);
-    if (!docxLib) {
-      throw new Error("Docx kütüphanesi yüklenemedi. Lütfen internet bağlantınızı kontrol edin ve sayfayı yenileyin.");
-    }
     const { Document, Packer } = docxLib;
     const children = parseMarkdownToDocx(markdownText, docxLib);
     const doc = new Document({ sections: [{ children }] });
