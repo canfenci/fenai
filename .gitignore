@@ -1,0 +1,17 @@
+# macOS sistem dosyaları
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# Geçici dosyalar
+*.tmp
+*.temp
+~$*
+
+# Yerel klasörler (büyük dosyalar)
+assets/belgeler/
+node_modules/
+
+# Log dosyaları
+*.log
