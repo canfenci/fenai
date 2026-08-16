@@ -8,6 +8,7 @@ let yaziliSorular = [];
 let selectedYaziliCiktilar = [];
 let selectedDenemeOgrCiktilar = [];
 let tempWebSources = [];
+let havuzKonuList = [];
 
 // Sayfa meta bilgileri
 const pageMeta = {
@@ -836,6 +837,8 @@ async function clearAllData() {
 async function saveSourceData() {
   const title = document.getElementById('kaynak-baslik').value.trim();
   const text = document.getElementById('kaynak-metin').value.trim();
+  const sinifEl = document.getElementById('kaynak-sinif');
+  const sinif = sinifEl ? sinifEl.value : '';
   if (!title || !text) {
     showToast('Lütfen başlık ve kaynak metni alanlarını doldurun!', 'error');
     return;
@@ -844,11 +847,15 @@ async function saveSourceData() {
     await db_kaynakKaydet({
       baslik: title,
       icerik: text,
+      sinif: sinif || null,
       tarih: new Date().toISOString()
     });
     document.getElementById('kaynak-baslik').value = '';
     document.getElementById('kaynak-metin').value = '';
     document.getElementById('file-uploader').value = '';
+    if (sinifEl) sinifEl.value = '';
+    const sinifBilgi = document.getElementById('kaynak-sinif-bilgi');
+    if (sinifBilgi) sinifBilgi.textContent = 'PDF yüklendiğinde sistem gömülü müfredata göre sınıfı otomatik tespit eder. İsterseniz elle değiştirebilirsiniz.';
     await refreshSourceSelects();
     showToast('Kaynak başarıyla veritabanına kaydedildi!', 'success');
   } catch (e) {
@@ -885,10 +892,11 @@ async function refreshSourceSelects() {
         kaynaklar.forEach(k => {
           const dateStr = new Date(k.tarih).toLocaleString('tr-TR');
           const sizeKb = Math.round(k.icerik.length / 1024);
+          const sinifBadge = k.sinif ? `<span class="badge badge-primary" style="font-size:0.68rem; margin-left:6px;">${k.sinif}. Sınıf</span>` : `<span class="badge" style="font-size:0.68rem; margin-left:6px;">Sınıf Tanımsız</span>`;
           html += `
             <div style="background: var(--surface2); padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);">
               <div>
-                <strong style="color: var(--primary); font-size: 0.9rem; display: block; margin-bottom: 4px;">💾 ${k.baslik}</strong>
+                <strong style="color: var(--primary); font-size: 0.9rem; display: block; margin-bottom: 4px;">💾 ${k.baslik}${sinifBadge}</strong>
                 <span style="font-size: 0.75rem; color: var(--text-muted); display: block;">Boyut: ~${sizeKb} KB | Sürüm: Kalıcı Veritabanı | 📅 ${dateStr}</span>
               </div>
               <button class="btn btn-danger btn-sm" onclick="deleteSource(${k.id})" style="padding: 4px 10px; font-size: 0.75rem;">🗑️ Sil</button>
@@ -927,7 +935,7 @@ async function refreshSourceSelects() {
         kaynaklar.forEach(k => {
           const opt = document.createElement('option');
           opt.value = k.id;
-          opt.textContent = `📂 [Kalıcı] ${k.baslik}`;
+          opt.textContent = `📂 [Kalıcı] ${k.baslik}` + (k.sinif ? ` (${k.sinif}. Sınıf)` : '');
           selectEl.appendChild(opt);
         });
         
@@ -978,6 +986,10 @@ function clearSourceData() {
   document.getElementById('kaynak-metin').value = '';
   document.getElementById('kaynak-baslik').value = '';
   document.getElementById('file-uploader').value = '';
+  const sinifEl = document.getElementById('kaynak-sinif');
+  if (sinifEl) sinifEl.value = '';
+  const sinifBilgi = document.getElementById('kaynak-sinif-bilgi');
+  if (sinifBilgi) sinifBilgi.textContent = 'PDF yüklendiğinde sistem gömülü müfredata göre sınıfı otomatik tespit eder. İsterseniz elle değiştirebilirsiniz.';
   showToast('Giriş alanları temizlendi.', 'info');
 }
 
@@ -986,13 +998,34 @@ async function handleFileUpload(event) {
   if (!file) return;
   const textArea = document.getElementById('kaynak-metin');
   const titleInput = document.getElementById('kaynak-baslik');
+  const sinifSelect = document.getElementById('kaynak-sinif');
+  const sinifBilgi = document.getElementById('kaynak-sinif-bilgi');
   const cleanName = file.name.replace(/\.[^/.]+$/, "");
   titleInput.value = cleanName;
+
+  const sinifTespitEt = async (metin) => {
+    if (!sinifSelect) return;
+    sinifSelect.value = '';
+    if (sinifBilgi) sinifBilgi.textContent = 'Sınıf tespit ediliyor...';
+    try {
+      const sinif = await detectPdfClass(metin);
+      if (sinif) {
+        sinifSelect.value = sinif;
+        if (sinifBilgi) sinifBilgi.textContent = `✅ Sistem bu belgeyi ${sinif}. Sınıf olarak tanımladı. İsterseniz değiştirebilirsiniz.`;
+      } else if (sinifBilgi) {
+        sinifBilgi.textContent = '⚠️ Sınıf tespit edilemedi. Lütfen elle seçin.';
+      }
+    } catch (e) {
+      if (sinifBilgi) sinifBilgi.textContent = '⚠️ Sınıf tespiti sırasında hata oluştu. Lütfen elle seçin.';
+    }
+  };
+
   if (file.type === "application/pdf") {
     showToast("PDF metni çıkartılıyor, lütfen bekleyin...", "info");
     try {
       const extractedText = await extractTextFromPDF(file);
       textArea.value = extractedText;
+      await sinifTespitEt(extractedText);
       showToast("PDF içeriği başarıyla çıkartıldı!", "success");
     } catch (e) {
       console.error(e);
@@ -1000,8 +1033,9 @@ async function handleFileUpload(event) {
     }
   } else if (file.type === "text/plain") {
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
       textArea.value = e.target.result;
+      await sinifTespitEt(e.target.result);
       showToast("Metin dosyası yüklendi!", "success");
     };
     reader.readAsText(file);
@@ -1024,6 +1058,83 @@ async function extractTextFromPDF(file) {
     fullText += pageText + '\n';
   }
   return fullText;
+}
+
+// ============================================================
+// SINIF OTOMATİK TESPİTİ (Kod -> Anahtar Kelime -> AI)
+// ============================================================
+function detectPdfClassByCodes(text) {
+  if (!text) return null;
+  const counts = { '5': 0, '6': 0, '7': 0, '8': 0 };
+  const fb = text.match(/FB\.(\d)\.\d+\.\d+\.\d+/g) || [];
+  fb.forEach(m => {
+    const c = m.match(/FB\.(\d)/)[1];
+    if (counts[c] !== undefined) counts[c]++;
+  });
+  const f8 = text.match(/F\.8\.\d+\.\d+\.\d+/g) || [];
+  counts['8'] += f8.length;
+  let best = null, score = 0;
+  Object.keys(counts).forEach(c => {
+    if (counts[c] > score) { score = counts[c]; best = c; }
+  });
+  return score > 0 ? best : null;
+}
+
+function detectPdfClassByKeywords(text) {
+  if (!text) return null;
+  const kwMap = {
+    '5': ['dinamometre', 'tam gölge', "ayın evreleri", 'ampul parlaklığı', 'evsel atık', 'geri dönüşüm', 'sürtünme kuvveti', 'güneş'],
+    '6': ['güneş sistemi', 'tutulma', 'bileşke kuvvet', 'sabit sürat', 'yoğunluk', 'genleşme', 'büzülme', 'denetleyici', 'ergenlik', 'reosta', 'biyoçeşitlilik', 'başkalaşım'],
+    '7': ['galaksi', 'takımyıldız', 'kinetik enerji', 'potansiyel enerji', 'dolaşım sistemi', 'boşaltım', 'mercek', 'kırılma', 'periyodik tablo', 'element', 'elektriklenme', 'atom'],
+    '8': ['mevsim', 'iklim', 'kromozom', 'kalıtım', 'mutasyon', 'modifikasyon', 'adaptasyon', 'biyoteknoloji', 'basınç', 'asit', 'baz', 'fotosentez', 'basit makine', 'nükleotid']
+  };
+  const counts = { '5': 0, '6': 0, '7': 0, '8': 0 };
+  const lower = text.toLowerCase();
+  Object.keys(kwMap).forEach(c => {
+    kwMap[c].forEach(kw => {
+      if (lower.includes(kw.toLowerCase())) counts[c]++;
+    });
+  });
+  let best = null, score = 0;
+  Object.keys(counts).forEach(c => {
+    if (counts[c] > score) { score = counts[c]; best = c; }
+  });
+  return score > 0 ? best : null;
+}
+
+async function aiDetectClass(text) {
+  const providers = window.FenAI && window.FenAI.Providers ? window.FenAI.Providers : null;
+  const appState = window.FenAI && window.FenAI.AppState ? window.FenAI.AppState : null;
+  if (!providers || !appState) return null;
+
+  const prompt = `Aşağıda bir fen bilimleri dokümanından alınmış metin var. Bu dokümanın Türkiye'de hangi sınıf seviyesine (5, 6, 7 veya 8. sınıf) ait olduğunu belirle. Sadece tek rakamla cevap ver: 5, 6, 7 veya 8. Başka hiçbir açıklama yazma.\n\nMETİN:\n${text.substring(0, 6000)}`;
+  const systemPrompt = 'Sen bir eğitim müfredatı uzmanısın. Sadece tek rakam döndür.';
+
+  const candidates = [
+    { has: !!appState.getApiKey('gemini'), fn: () => providers.callGemini(prompt, systemPrompt) },
+    { has: !!appState.getApiKey('deepseek'), fn: () => providers.callDeepSeekDirect(prompt, systemPrompt) },
+    { has: !!appState.getApiKey('openrouter'), fn: () => providers.callOpenRouterDirect(prompt, 'openai/gpt-4o-mini', systemPrompt) }
+  ];
+
+  for (const c of candidates) {
+    if (!c.has) continue;
+    try {
+      const res = await c.fn();
+      const match = (res || '').match(/\b[5-8]\b/);
+      if (match) return match[0];
+    } catch (e) {
+      console.warn('Sınıf tespiti sağlayıcı hatası:', e);
+    }
+  }
+  return null;
+}
+
+async function detectPdfClass(text) {
+  const byCode = detectPdfClassByCodes(text);
+  if (byCode) return byCode;
+  const byKeyword = detectPdfClassByKeywords(text);
+  if (byKeyword) return byKeyword;
+  return await aiDetectClass(text);
 }
 
 // ============================================================
@@ -1428,6 +1539,7 @@ function denemeSinifDegisti() {
   loadUnits('deneme-ogr');
   selectedDenemeOgrCiktilar = [];
   renderDenemeOgrCiktilar();
+  renderHavuzKonuListesi();
 }
 
 function denemeTipDegisti() {
@@ -1435,6 +1547,12 @@ function denemeTipDegisti() {
   document.getElementById('deneme-panel-genel').style.display = tip === 'genel' ? 'block' : 'none';
   document.getElementById('deneme-panel-konu').style.display = tip === 'konu' ? 'block' : 'none';
   document.getElementById('deneme-panel-ogretmen').style.display = tip === 'ogretmen' ? 'block' : 'none';
+  const havuzPanel = document.getElementById('deneme-panel-havuz');
+  if (havuzPanel) havuzPanel.style.display = tip === 'havuz' ? 'block' : 'none';
+  const srcBox = document.getElementById('use-source-container-deneme');
+  if (srcBox) srcBox.style.display = tip === 'havuz' ? 'none' : 'block';
+  const zorlukGroup = document.getElementById('deneme-zorluk-group');
+  if (zorlukGroup) zorlukGroup.style.display = tip === 'havuz' ? 'none' : 'block';
 }
 
 function addDenemeOgrCikti() {
@@ -1498,6 +1616,97 @@ function removeDenemeOgrCikti(id) {
   selectedDenemeOgrCiktilar = selectedDenemeOgrCiktilar.filter(c => c.id !== id);
   renderDenemeOgrCiktilar();
   showToast('Kazanım silindi.', 'info');
+}
+
+// ============================================================
+// KAYNAK HAVUZU TABANLI DENEME (Konu Checkbox Listesi & Zorluk Dağılımı)
+// ============================================================
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderHavuzKonuListesi() {
+  const container = document.getElementById('deneme-havuz-konu-liste');
+  if (!container) return;
+  const sinifEl = document.getElementById('deneme-sinif');
+  if (!sinifEl) return;
+  const sinif = sinifEl.value;
+  havuzKonuList = [];
+  const mufre = getMufre();
+  const uniteler = mufre[sinif] || {};
+
+  let html = '';
+  let toplamKonu = 0;
+  Object.keys(uniteler).forEach(unite => {
+    const topics = uniteler[unite] || [];
+    html += `<div style="font-weight:700; color:var(--primary); font-size:0.8rem; margin:10px 0 4px; border-bottom:1px solid var(--border); padding-bottom:4px;">${escapeHtml(unite)}</div>`;
+    topics.forEach(t => {
+      const idx = havuzKonuList.length;
+      havuzKonuList.push({ unite, text: t });
+      const codeMatch = t.match(/\((FB\.\d+\.\d+\.\d+\.\d+|F\.8\.\d+\.\d+\.\d+)\)/);
+      const code = codeMatch ? codeMatch[1] : '';
+      const cleanName = t.includes(' - ') ? t.split(' - ')[0] : t;
+      toplamKonu++;
+      html += `
+        <label style="display:flex; align-items:flex-start; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:0.8rem;">
+          <input type="checkbox" class="havuz-konu-cb" value="${idx}" style="margin-top:2px;" />
+          <span style="line-height:1.4;">
+            ${escapeHtml(cleanName)}
+            ${code ? `<span class="badge badge-primary" style="font-size:0.65rem; margin-left:4px;">${code}</span>` : ''}
+          </span>
+        </label>`;
+    });
+  });
+
+  container.innerHTML = html || '<div style="padding:12px; color:var(--text-muted); font-style:italic;">Bu sınıf için konu bulunamadı.</div>';
+
+  const info = document.getElementById('deneme-havuz-konu-sayisi');
+  if (info) info.textContent = `Toplam ${toplamKonu} konu listelendi. İşaretlediğiniz konulardan kaynak havuzundaki sorulara benzer sorular üretilir.`;
+}
+
+function zorlukSet(key, val) {
+  val = Math.max(0, Math.min(100, Math.round(val || 0)));
+  const range = document.getElementById('havuz-zor-' + key);
+  const sayi = document.getElementById('havuz-zor-' + key + '-sayi');
+  if (range) range.value = val;
+  if (sayi) sayi.value = val;
+  return val;
+}
+
+function updateZorlukOzet() {
+  const el = document.getElementById('havuz-zorluk-ozet');
+  if (!el) return;
+  const k = document.getElementById('havuz-zor-kolay')?.value || 0;
+  const o = document.getElementById('havuz-zor-orta')?.value || 0;
+  const z = document.getElementById('havuz-zor-zor')?.value || 0;
+  el.textContent = `🟢 Kolay %${k} · 🟡 Orta %${o} · 🔴 Zor %${z}`;
+}
+
+function zorlukDagilimDegisti(changed) {
+  const keys = ['kolay', 'orta', 'zor'];
+  const changedVal = zorlukSet(changed, parseInt(document.getElementById('havuz-zor-' + changed).value) || 0);
+  const others = keys.filter(k => k !== changed);
+  const cur = {};
+  others.forEach(k => { cur[k] = parseInt(document.getElementById('havuz-zor-' + k).value) || 0; });
+  const othersSum = cur[others[0]] + cur[others[1]];
+  const remaining = 100 - changedVal;
+  let v0, v1;
+  if (othersSum > 0) {
+    v0 = Math.round(cur[others[0]] / othersSum * remaining);
+    v1 = remaining - v0;
+  } else {
+    v0 = Math.floor(remaining / 2);
+    v1 = remaining - v0;
+  }
+  zorlukSet(others[0], v0);
+  zorlukSet(others[1], v1);
+  updateZorlukOzet();
+}
+
+function zorlukSayiDegisti(key) {
+  const sayi = document.getElementById('havuz-zor-' + key + '-sayi');
+  zorlukSet(key, parseInt(sayi.value) || 0);
+  zorlukDagilimDegisti(key);
 }
 
 function initDeneme() {
@@ -1590,6 +1799,57 @@ Sınav Şablonu Yapısı:
 2. **Sorular** (Kazanım ve soru sayılarına tam olarak sadık kalarak)
 3. **Cevap Anahtarı ve Çözüm Ayrıntıları**`;
   }
+  else if (tip === 'havuz') {
+    const secili = Array.from(document.querySelectorAll('.havuz-konu-cb:checked')).map(cb => parseInt(cb.value));
+    if (secili.length === 0) {
+      showToast('Lütfen en az bir konu işaretleyin!', 'error');
+      return;
+    }
+    const soruSayisi = document.getElementById('deneme-havuz-sayi').value;
+    const zKolay = document.getElementById('havuz-zor-kolay').value;
+    const zOrta = document.getElementById('havuz-zor-orta').value;
+    const zZor = document.getElementById('havuz-zor-zor').value;
+
+    const konular = secili.map(i => havuzKonuList[i]).filter(Boolean);
+    const konuListesi = konular.map((k, i) => `- Konu ${i + 1} (${k.unite}): ${k.text}`).join('\n');
+
+    const kaynaklar = await db_kaynakListele();
+    let uygunKaynaklar = kaynaklar.filter(k => String(k.sinif) === String(sinif));
+    if (uygunKaynaklar.length === 0) uygunKaynaklar = kaynaklar;
+
+    let kaynakBlok = '';
+    uygunKaynaklar.forEach((k, i) => {
+      kaynakBlok += `\n[KAYNAK ${i + 1}: ${k.baslik}${k.sinif ? ' (' + k.sinif + '. Sınıf)' : ''}]\n${(k.icerik || '').substring(0, 5000)}\n`;
+    });
+
+    if (!kaynakBlok.trim()) {
+      showToast('Kaynak havuzunda hiç PDF kaynağı bulunamadı. Önce Kaynak Havuzuna PDF yükleyin.', 'error');
+      return;
+    }
+
+    title = `${sinif}. Sınıf Kaynak Havuzu Tabanlı Deneme Sınavı`;
+    sub = `${konular.length} konu · ${soruSayisi} soru`;
+
+    prompt = `Lütfen ${sinif}. Sınıf düzeyinde fen bilimleri dersi için, aşağıdaki kaynak havuzundaki soruların mantığını ve tarzını analiz ederek BENZER ${soruSayisi} sorudan oluşan bir deneme sınavı hazırla.
+
+Seçilen Konu / Kazanımlar:
+${konuListesi}
+
+Zorluk Dağılımı (toplam soru sayısına oranla yaklaşık uygula):
+- Kolay (Temel Bilgi): %${zKolay}
+- Orta (Uygulama & Analiz): %${zOrta}
+- Zor (Muhakeme & LGS): %${zZor}
+
+Soru Tarzı: ${tarz === 'test' ? 'Sadece Çoktan Seçmeli (4 Seçenekli)' : 'Karma Soru Tipleri (Çoktan seçmeli, açık uçlu vb.)'}
+
+KAYNAK HAVUZU (bu kaynaklardaki soruların ifade tarzına, senaryo yapısına, tuzaklarına ve zorluk seviyesine BENZER sorular üret):
+${kaynakBlok}
+
+Sınav Şablonu Yapısı:
+1. **Sınav Başlığı** (Deneme Sınavı Başlığı, Ad, Soyad, Sınıf, Numara alanları)
+2. **Sorular** (her sorunun kazanım kodunu belirt)
+3. **Cevap Anahtarı ve Açıklamalı Çözümler**`;
+  }
 
   setLoading('deneme', true);
   try {
@@ -1599,10 +1859,10 @@ Sınav Şablonu Yapısı:
     processAndRenderOutput('output-deneme', result);
     
     await db_bankasiKaydet({
-      baslik: `${sinif}. Sınıf Deneme Sınavı - ${tip === 'genel' ? 'Genel' : tip === 'konu' ? 'Konu' : 'Özel'}`,
+      baslik: `${sinif}. Sınıf Deneme Sınavı - ${tip === 'genel' ? 'Genel' : tip === 'konu' ? 'Konu' : tip === 'havuz' ? 'Kaynak Havuzu' : 'Özel'}`,
       tur: 'test',
       sinif: sinif,
-      unite: tip === 'konu' ? document.getElementById('deneme-konu-unite').value : 'Genel/Karma',
+      unite: tip === 'konu' ? document.getElementById('deneme-konu-unite').value : (tip === 'havuz' ? 'Kaynak Havuzu' : 'Genel/Karma'),
       konu: sub,
       icerik: result,
       tarih: new Date().toISOString(),

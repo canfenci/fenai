@@ -289,6 +289,19 @@
           <input type="text" id="kaynak-baslik" placeholder="Örn: 6. Sınıf Sindirim Sistemi Bölümü" />
         </div>
         <div class="form-group">
+          <label>Sınıf Seviyesi (Otomatik Tespit)</label>
+          <select id="kaynak-sinif">
+            <option value="">🔍 Otomatik Tespit</option>
+            <option value="5">5. Sınıf</option>
+            <option value="6">6. Sınıf</option>
+            <option value="7">7. Sınıf</option>
+            <option value="8">8. Sınıf</option>
+          </select>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;" id="kaynak-sinif-bilgi">
+            PDF yüklendiğinde sistem gömülü müfredata göre sınıfı otomatik tespit eder. İsterseniz elle değiştirebilirsiniz.
+          </p>
+        </div>
+        <div class="form-group">
           <label>Belge Yükle (PDF veya TXT)</label>
           <div class="drag-area" onclick="document.getElementById('file-uploader').click()">
             <span class="drag-icon">📄</span>
@@ -724,6 +737,7 @@
                   <option value="genel" selected>1. Genel Deneme (Tüm Müfredat)</option>
                   <option value="konu">2. Konu Denemesi (Tek Konu / Kazanım)</option>
                   <option value="ogretmen">3. Öğretmen Seçimi (Özel Seçim)</option>
+                  <option value="havuz">4. Kaynak Havuzu Tabanlı (PDF'lerden Benzer Soru)</option>
                 </select>
               </div>
             </div>
@@ -806,9 +820,51 @@
               </div>
             </div>
 
+            <!-- 4. Kaynak Havuzu Tabanlı Alanı -->
+            <div id="deneme-panel-havuz" class="deneme-panel" style="display:none;">
+              <div class="form-group">
+                <label>Konu Seçimi (Onay Kutusu)</label>
+                <div id="deneme-havuz-konu-liste" style="max-height:300px; overflow-y:auto; padding:8px; background:var(--bg); border:1px solid var(--border); border-radius:8px;"></div>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;" id="deneme-havuz-konu-sayisi">Konular yükleniyor...</p>
+              </div>
+              <div class="form-group">
+                <label>Soru Sayısı</label>
+                <select id="deneme-havuz-sayi">
+                  <option value="10">10 Soru</option>
+                  <option value="15">15 Soru</option>
+                  <option value="20" selected>20 Soru (LGS Standartı)</option>
+                  <option value="30">30 Soru</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Zorluk Dağılımı (toplam %100'e kilitli)</label>
+                <div id="havuz-zorluk-dagilim">
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="width:52px; font-size:0.78rem; color:var(--text);">🟢 Kolay</span>
+                    <input type="range" id="havuz-zor-kolay" min="0" max="100" value="20" oninput="zorlukDagilimDegisti('kolay')" style="flex:1;" />
+                    <input type="number" id="havuz-zor-kolay-sayi" min="0" max="100" value="20" oninput="zorlukSayiDegisti('kolay')" style="width:60px;" />
+                    <span style="width:20px;">%</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="width:52px; font-size:0.78rem; color:var(--text);">🟡 Orta</span>
+                    <input type="range" id="havuz-zor-orta" min="0" max="100" value="60" oninput="zorlukDagilimDegisti('orta')" style="flex:1;" />
+                    <input type="number" id="havuz-zor-orta-sayi" min="0" max="100" value="60" oninput="zorlukSayiDegisti('orta')" style="width:60px;" />
+                    <span style="width:20px;">%</span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                    <span style="width:52px; font-size:0.78rem; color:var(--text);">🔴 Zor</span>
+                    <input type="range" id="havuz-zor-zor" min="0" max="100" value="20" oninput="zorlukDagilimDegisti('zor')" style="flex:1;" />
+                    <input type="number" id="havuz-zor-zor-sayi" min="0" max="100" value="20" oninput="zorlukSayiDegisti('zor')" style="width:60px;" />
+                    <span style="width:20px;">%</span>
+                  </div>
+                  <div id="havuz-zorluk-ozet" style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">🟢 Kolay %20 · 🟡 Orta %60 · 🔴 Zor %20</div>
+                </div>
+              </div>
+            </div>
+
             <!-- Ortak Ayarlar -->
             <div class="form-row" style="border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px;">
-              <div class="form-group">
+              <div class="form-group" id="deneme-zorluk-group">
                 <label>Zorluk Seviyesi</label>
                 <select id="deneme-zorluk">
                   <option value="kolay">Temel Bilgi (Kolay)</option>
