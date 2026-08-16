@@ -72,7 +72,7 @@
     <!-- FenAI Modülü Alt Menüsü -->
     <div class="nav-item" style="font-weight: 700; color: var(--primary); pointer-events: none;"><span class="nav-icon">🧠</span> FenAI Studio</div>
     <div class="nav-nested">
-      <div class="nav-item" onclick="showPage('konu', this)"><span class="nav-icon">📖</span> Konu Anlatımı</div>
+
       <div class="nav-item" onclick="showPage('calisma', this)"><span class="nav-icon">📄</span> Çalışma Kağıdı</div>
       <div class="nav-item" onclick="showPage('baglamli', this)"><span class="nav-icon">🧠</span> Bağlamlı Soru</div>
       <div class="nav-item" onclick="showPage('test', this)"><span class="nav-icon">📋</span> Kavram Testi</div>
@@ -183,9 +183,7 @@
           <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showRoadmapNotification('Lesson Studio')">
             <span style="font-size: 1.4rem; margin-right: 6px;">📘</span> Ders Sunumu
           </div>
-          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('konu')">
-            <span style="font-size: 1.4rem; margin-right: 6px;">🤖</span> FenAI Studio
-          </div>
+
           <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('test')">
             <span style="font-size: 1.4rem; margin-right: 6px;">📝</span> Ölçme-Değ.
           </div>
@@ -345,87 +343,7 @@
       </div>
     </div>
 
-    <!-- ===== KONU ANLATIMI ===== -->
-    <div id="page-konu" class="page-content" style="display:none;">
-      <div class="workspace-layout">
-        <div class="workspace-sidebar">
-          <div class="card">
-            <div class="card-title">📚 Müfredat Seçimi (TYMM 2024 Uyumlu)</div>
-            <div class="form-group" id="use-source-container-konu" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
-              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
-              <select id="use-source-select-konu" style="margin:0; background:var(--bg);">
-                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
-              </select>
-              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
-                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
-              </p>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Sınıf</label>
-                <select id="konu-sinif" onchange="loadUnits('konu')">
-                  <option value="5">5. Sınıf (Maarif Modeli)</option>
-                  <option value="6">6. Sınıf (Maarif Modeli)</option>
-                  <option value="7">7. Sınıf (Maarif Modeli)</option>
-                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Ünite / Tema</label>
-                <select id="konu-unite" onchange="loadTopics('konu')"></select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Konu / Kazanım Detayı</label>
-              <select id="konu-topic"></select>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Anlatım Düzeyi</label>
-                <select id="konu-duzey">
-                  <option value="baslangic">Başlangıç (Temel Kavramlar)</option>
-                  <option value="orta" selected>Orta Düzey (Kazanım Odaklı)</option>
-                  <option value="ileri">İleri Düzey (Derinlemesine & Üst Düzey)</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label>Anlatım Stili</label>
-                <select id="konu-stil">
-                  <option value="klasik">Klasik Ders Anlatımı</option>
-                  <option value="hikaye">Hikâye & Senaryo Tabanlı</option>
-                  <option value="soru-cevap">Sokratik / Soru-Cevap Formatı</option>
-                  <option value="ozet">Şematik Özet / Madde Madde</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Ek Notlar / Özel Vurgulanacak Noktalar (isteğe bağlı)</label>
-              <textarea id="konu-not" placeholder="Örneğin: 'Sürtünmenin ısıya dönüşümünü bir deney tasarlayarak anlat...'"></textarea>
-            </div>
-            <div class="btn-group">
-              <button class="btn btn-primary" onclick="generateKonu()" id="btn-konu">✨ Konu Anlatımı Üret</button>
-            </div>
-          </div>
-        </div>
-        <div class="workspace-preview">
-          <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
-              <span>📄 Üretilen İçerik Önizlemesi</span>
-              <span class="badge badge-primary" id="routed-badge-konu">Beklemede</span>
-            </div>
-            <div class="loading-bar" id="loading-konu"></div>
-            <div class="output-box" id="output-konu"><span class="output-placeholder">Konu anlatımı burada görünecek...</span></div>
-            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
-              <button class="btn btn-success btn-sm" onclick="copyOutput('output-konu')">📋 Kopyala</button>
-              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-konu','konu_anlatimi')">📄 Word (.docx)</button>
-              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-konu','konu_anlatimi')">🖨️ PDF</button>
-              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-konu','konu_anlatimi')">🌐 HTML</button>
-              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-konu','konu_anlatimi')">📊 PPTX (Slayt)</button>
-            </div>
-          </div>
-        </div>
-    </div>
-  </div>
+
 
     <!-- ===== KAVRAM TESTİ ===== -->
     <div id="page-test" class="page-content" style="display:none;">
@@ -988,7 +906,7 @@
           <input type="text" id="bankasi-ara" placeholder="Ara..." oninput="bankasiFiltrele()" style="flex:1; min-width:150px;">
           <select id="bankasi-tur" onchange="bankasiFiltrele()">
             <option value="">Tüm Türler</option>
-            <option value="konu">Konu Anlatımı</option>
+
             <option value="test">Kavram Testi</option>
             <option value="baglamli">Bağlamlı Soru</option>
             <option value="calisma">Çalışma Kağıdı</option>
