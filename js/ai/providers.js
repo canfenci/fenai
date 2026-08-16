@@ -34,11 +34,15 @@ window.FenAI.Providers = (() => {
       let delay = 1000;
       for (let attempt = 0; attempt < 5; attempt++) {
         try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 60000);
           const res = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            signal: controller.signal
           });
+          clearTimeout(timeout);
           if (res.ok) {
             const data = await res.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -68,6 +72,8 @@ window.FenAI.Providers = (() => {
         throw new Error('no key');
       }
       const model = window.FenAI.AppState.getApiModel('deepseek');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
@@ -75,8 +81,10 @@ window.FenAI.Providers = (() => {
           model: model,
           messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: prompt }],
           temperature: 0.6, max_tokens: 3500
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) { const e = await res.text(); throw new Error(e); }
       const data = await res.json();
       return data.choices[0].message.content;
@@ -91,6 +99,8 @@ window.FenAI.Providers = (() => {
         toast('OpenRouter API anahtarı girilmedi!', 'error');
         throw new Error('no key');
       }
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -106,8 +116,10 @@ window.FenAI.Providers = (() => {
             { role: 'user', content: prompt }
           ],
           temperature: 0.7, max_tokens: 3500
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) { const e = await res.text(); throw new Error(e); }
       const data = await res.json();
       return data.choices[0].message.content;
@@ -123,6 +135,8 @@ window.FenAI.Providers = (() => {
         throw new Error('no key');
       }
       const model = window.FenAI.AppState.getApiModel('claude');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -136,8 +150,10 @@ window.FenAI.Providers = (() => {
           max_tokens: 3500,
           system: systemPrompt,
           messages: [{ role: 'user', content: prompt }]
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) {
         const e = await res.text();
         throw new Error(`Claude API Hatası: ${e}`);
@@ -159,6 +175,8 @@ window.FenAI.Providers = (() => {
         throw new Error('no key');
       }
       const model = window.FenAI.AppState.getApiModel('nvidia');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -173,8 +191,10 @@ window.FenAI.Providers = (() => {
           ],
           temperature: 0.7,
           max_tokens: 3500
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) {
         const e = await res.text();
         throw new Error(`Nvidia NIM API Hatası: ${e}`);
@@ -196,6 +216,8 @@ window.FenAI.Providers = (() => {
         throw new Error('no key');
       }
       const model = window.FenAI.AppState.getApiModel('openai');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -210,8 +232,10 @@ window.FenAI.Providers = (() => {
           ],
           temperature: 0.7,
           max_tokens: 3500
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) {
         const e = await res.text();
         throw new Error(`OpenAI API Hatası: ${e}`);
@@ -233,6 +257,8 @@ window.FenAI.Providers = (() => {
         throw new Error('no key');
       }
       const model = window.FenAI.AppState.getApiModel('perplexity');
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000);
       const res = await fetch('https://api.perplexity.ai/chat/completions', {
         method: 'POST',
         headers: {
@@ -247,8 +273,10 @@ window.FenAI.Providers = (() => {
           ],
           temperature: 0.7,
           max_tokens: 3500
-        })
+        }),
+        signal: controller.signal
       });
+      clearTimeout(timeout);
       if (!res.ok) {
         const e = await res.text();
         throw new Error(`Perplexity API Hatası: ${e}`);

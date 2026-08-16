@@ -111,6 +111,12 @@ window.FenAI.AIEngine = (() => {
         }
       }
 
+      // SMART ENGINE: no targetModule or unknown targetModule -> default to Gemini
+      if (currentEngine === 'smart') {
+        if (targetModule) updateRoutedBadge(targetModule, 'Gemini 2.5 Flash (Varsayılan)', 'badge-success');
+        return await window.FenAI.Providers.callGemini(finalPrompt, finalSystemPrompt);
+      }
+
       // DIRECT ENGINE SELECTIONS WITH MANUAL CONFIGS
       if (currentEngine === 'claude') {
         const model = window.FenAI.AppState.getApiModel('claude');
