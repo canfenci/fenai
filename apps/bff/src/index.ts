@@ -1,9 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
-import { geminiRoute } from './routes/gemini';
-import { openrouterRoute } from './routes/openrouter';
-import { deepseekRoute } from './routes/deepseek';
 
 type Env = {
   PLATFORM_GEMINI_KEY: string;
@@ -23,11 +20,6 @@ app.use('*', cors({
 // Health check
 app.get('/health', (c) => c.json({ ok: true, service: 'fenai-bff', timestamp: new Date().toISOString() }));
 
-// AI Routes
-app.route('/api/ai', geminiRoute);
-app.route('/api/ai', openrouterRoute);
-app.route('/api/ai', deepseekRoute);
-
 // Platform key resolver helper
 async function getPlatformKey(provider: string, env: Env): Promise<string | null> {
   if (env.PLATFORM_ENABLED !== 'true') return null;
@@ -37,10 +29,8 @@ async function getPlatformKey(provider: string, env: Env): Promise<string | null
   }
 }
 
-// User key getter (from KV or header) - placeholder
+// User key getter (from KV or header)
 async function getUserKey(provider: string, c: any): Promise<string | null> {
-  // TODO: Implement user key storage (KV/D1)
-  // For now, check Authorization header for BYOK
   const auth = c.req.header('Authorization');
   if (auth?.startsWith('Bearer ')) return auth.slice(7);
   return null;
@@ -61,9 +51,9 @@ async function resolveKey(provider: string, c: any): Promise<{ type: 'user' | 'p
 async function callProvider(provider: string, key: string, prompt: string, systemPrompt: string, model?: string): Promise<string> {
   const endpoints: Record<string, { url: string; headers: (key: string) => Record<string, string>; body: (prompt: string, systemPrompt: string, model?: string) => any }> = {
     gemini: {
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.5-flash'}:generateContent?key=${key}`,
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-2.0-flash'}:generateContent?key=${key}`,
       headers: () => ({ 'Content-Type': 'application/json' }),
-      body: (p, s) => ({ contents: [{ parts: [{ text: p }] }], systemInstruction: { parts: [{ text: s }] } }),
+      body: (p, s) => ({ contents: [{ parts: [{ text: p }] }], systemInstruction: s ? { parts: [{ text: s }] } : undefined }),
     },
     openrouter: {
       url: 'https://openrouter.ai/api/v1/chat/completions',
@@ -97,7 +87,7 @@ async function callProvider(provider: string, key: string, prompt: string, syste
       throw new Error(`${provider} API error (${res.status}): ${err}`);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     
     // Extract text based on provider response format
     if (provider === 'gemini') {
@@ -119,7 +109,7 @@ const GenerateSchema = z.object({
 });
 
 // Routes
-const geminiRoute = new Hono<{ Bindings: Env }>()
+const aiRoute = new Hono<{ Bindings: Env }>()
   .post('/generate-exam', async (c) => {
     const body = await c.req.json();
     const parsed = GenerateSchema.safeParse(body);
@@ -178,8 +168,7 @@ const geminiRoute = new Hono<{ Bindings: Env }>()
     }
   });
 
-const openrouterRoute = new Hono<{ Bindings: Env }>();
-const deepseekRoute = new Hono<{ Bindings: Env }>();
+app.route('/api/ai', aiRoute);
 
 export default app;
 export type { Env };
