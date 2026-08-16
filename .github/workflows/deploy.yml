@@ -17,6 +17,9 @@ jobs:
   deploy:
     name: Deploy Worker
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/bff
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,39 +33,17 @@ jobs:
 
       - name: Install deps
         run: npm ci
-        working
 
-E0F
+      - name: Typecheck
+        run: npm run typecheck
 
-E0f
-E0F
->....                                                   
-
-permissions:
-  contents: read
-  id-token: write
-
-jobs:
-  deploy:
-    name: Deploy Worker
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: apps/bff/package-lock.json
-
-      - name: Install deps
-        run: npm ci
-        working
-heredoc> 
-E0F
-git add .github/workflows/deploy.yml
-git commit -m "ci: fix working-directory for BFF deploy"
-git push origin main
-E0F
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        env:
+          PLATFORM_GEMINI_KEY: ${{ secrets.PLATFORM_GEMINI_KEY }}
+          PLATFORM_ENABLED: ${{ secrets.PLATFORM_ENABLED }}
+          PLATFORM_DAILY_LIMIT: ${{ secrets.PLATFORM_DAILY_LIMIT }}
+          PLATFORM_PER_USER_DAILY: ${{ secrets.PLATFORM_PER_USER_DAILY }}
