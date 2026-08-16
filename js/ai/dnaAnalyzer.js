@@ -118,19 +118,46 @@ Aşağıdaki JSON formatında bir DNA profili çıkar. Sadece JSON döndür, ba�
 
     const systemPrompt = 'Sen bir soru analiz uzmanısın. Sadece geçerli JSON döndür, hiçbir açıklama ekleme.';
 
-    // window.FenAI.AIEngine üzerinden analiz (doğru isim: AIEngine, büyük I)
-    if (!window.FenAI || !window.FenAI.AIEngine) {
-      // Fallback: direkt Providers ile dene
-      if (window.FenAI && window.FenAI.Providers) {
-        const result = await window.FenAI.Providers.callGemini(analysisPrompt, systemPrompt);
+    // Önce AIEngine dene (akıllı routing ile)
+    if (window.FenAI && window.FenAI.AIEngine) {
+      try {
+        const result = await window.FenAI.AIEngine.generate(analysisPrompt, systemPrompt, null, null, null);
         return parseJsonResult(result);
+      } catch (e) {
+        console.warn('AIEngine başarısız, manuel fallback deneniyor:', e);
       }
+    }
+
+    // Manuel fallback: tanımlı olan ilk provider'ı dene
+    const providers = window.FenAI && window.FenAI.Providers;
+    const appState = window.FenAI && window.FenAI.AppState;
+    if (!providers || !appState) {
       throw new Error('AI motoru başlatılmamış. Lütfen Ayarlar sayfasından API anahtarınızı kontrol edin.');
     }
 
-    const result = await window.FenAI.AIEngine.generate(analysisPrompt, systemPrompt, null, null, null);
+    const tryProviders = [
+      { has: !!appState.getApiKey('gemini'), fn: () => providers.callGemini(analysisPrompt, systemPrompt), label: 'Gemini' },
+      { has: !!appState.getApiKey('openrouter'), fn: () => providers.callOpenRouterDirect(analysisPrompt, 'openai/gpt-4o-mini', systemPrompt), label: 'OpenRouter (GPT-4o-mini)' },
+      { has: !!appState.getApiKey('deepseek'), fn: () => providers.callDeepSeekDirect(analysisPrompt, systemPrompt), label: 'DeepSeek' },
+      { has: !!appState.getApiKey('openai'), fn: () => providers.callOpenAiDirect(analysisPrompt, systemPrompt), label: 'OpenAI' },
+      { has: !!appState.getApiKey('claude'), fn: () => providers.callClaudeDirect(analysisPrompt, systemPrompt), label: 'Claude' },
+      { has: !!appState.getApiKey('perplexity'), fn: () => providers.callPerplexityDirect(analysisPrompt, systemPrompt), label: 'Perplexity' },
+      { has: !!appState.getApiKey('nvidia'), fn: () => providers.callNvidiaNimDirect(analysisPrompt, systemPrompt), label: 'Nvidia NIM' }
+    ];
 
-    return parseJsonResult(result);
+    for (const p of tryProviders) {
+      if (p.has) {
+        try {
+          console.log(`DNA analizi için ${p.label} deneniyor...`);
+          const result = await p.fn();
+          return parseJsonResult(result);
+        } catch (e) {
+          console.warn(`${p.label} başarısız:`, e);
+        }
+      }
+    }
+
+    throw new Error('Hiçbir API anahtarı tanımlı değil veya tüm providerlar başarısız oldu. Lütfen Ayarlar sayfasından en az bir API anahtarı girin.');
   }
 
   function parseJsonResult(result) {
