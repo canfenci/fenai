@@ -116,17 +116,24 @@ Aşağıdaki JSON formatında bir DNA profili çıkar. Sadece JSON döndür, ba�
   "uretim_rehberi": "<Bu DNA'ya göre yeni sorular üretirken yapay zekaya verilecek özel talimat>"
 }`;
 
-    // AI Engine üzerinden analiz
-    if (!window.FenAI || !window.FenAI.AiEngine) {
-      throw new Error('AI motoru hazır değil.');
+    const systemPrompt = 'Sen bir soru analiz uzmanısın. Sadece geçerli JSON döndür, hiçbir açıklama ekleme.';
+
+    // window.FenAI.AIEngine üzerinden analiz (doğru isim: AIEngine, büyük I)
+    if (!window.FenAI || !window.FenAI.AIEngine) {
+      // Fallback: direkt Providers ile dene
+      if (window.FenAI && window.FenAI.Providers) {
+        const result = await window.FenAI.Providers.callGemini(analysisPrompt, systemPrompt);
+        return parseJsonResult(result);
+      }
+      throw new Error('AI motoru başlatılmamış. Lütfen Ayarlar sayfasından API anahtarınızı kontrol edin.');
     }
 
-    const result = await window.FenAI.AiEngine.generate(analysisPrompt, {
-      system: 'Sen bir soru analiz uzmanısın. Sadece geçerli JSON döndür.',
-      temperature: 0.3
-    });
+    const result = await window.FenAI.AIEngine.generate(analysisPrompt, systemPrompt, null, null, null);
 
-    // JSON ayrıştır
+    return parseJsonResult(result);
+  }
+
+  function parseJsonResult(result) {
     let jsonStr = result;
     const match = result.match(/\{[\s\S]*\}/);
     if (match) jsonStr = match[0];
@@ -134,7 +141,7 @@ Aşağıdaki JSON formatında bir DNA profili çıkar. Sadece JSON döndür, ba�
     try {
       return JSON.parse(jsonStr);
     } catch (e) {
-      throw new Error('AI yanıtı JSON formatında değil: ' + e.message);
+      throw new Error('AI yanıtı JSON formatında değil. Tekrar deneyin.');
     }
   }
 
