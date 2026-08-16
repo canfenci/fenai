@@ -994,51 +994,7 @@
         </div>
       </div>
       
-      <!-- MÜFREDAT DÜZENLEYİCİ -->
-      <div class="card">
-        <div class="card-title">📚 Müfredat Düzenleyici (Özel Eklemeler)</div>
-        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
-          Kendi sınıf, ünite ve konularınızı ekleyebilir, mevcut olanları düzenleyebilirsiniz. 
-          Varsayılan müfredat korunur, ekledikleriniz ayrıca saklanır.
-        </p>
-        <div class="form-group">
-          <label>Sınıf Seç (Düzenlemek için)</label>
-          <select id="mufre-sinif" onchange="mufreSinifDegisti()">
-            <option value="5">5. Sınıf</option>
-            <option value="6">6. Sınıf</option>
-            <option value="7">7. Sınıf</option>
-            <option value="8">8. Sınıf</option>
-          </select>
-        </div>
-        <div id="mufre-uniteler-container">
-          <!-- Üniteler listelenecek -->
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Yeni Ünite Adı</label>
-            <input type="text" id="mufre-yeni-unite" placeholder="Örn: Ünite 8: Yeni Konu" />
-          </div>
-          <div class="form-group" style="justify-content:flex-end;">
-            <button class="btn btn-primary" onclick="mufreUniteEkle()">➕ Ünite Ekle</button>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Ünite Seç (Konu eklemek için)</label>
-            <select id="mufre-unite-select"></select>
-          </div>
-          <div class="form-group">
-            <label>Yeni Konu/Kazanım</label>
-            <input type="text" id="mufre-yeni-konu" placeholder="Örn: Yeni kazanım açıklaması" />
-          </div>
-          <div class="form-group" style="justify-content:flex-end;">
-            <button class="btn btn-primary" onclick="mufreKonuEkle()">➕ Konu Ekle</button>
-          </div>
-        </div>
-        <div class="btn-group">
-          <button class="btn btn-danger" onclick="mufreSifirla()">🗑️ Tüm Özel Eklemeleri Sıfırla</button>
-        </div>
-      </div>
+
       
       <div class="card">
         <div class="card-title">🗑️ Gizlilik ve Güvenlik</div>
