@@ -2,7 +2,7 @@
 // SERVICE WORKER – FenAI PWA Offline & Caching Support
 // ============================================================
 
-const CACHE_NAME = 'fenai-v14';
+const CACHE_NAME = 'fenai-v15';
 const staticAssets = [
   './',
   './index.html',
@@ -33,7 +33,9 @@ const staticAssets = [
   './js/prompt/promptEngine.js',
   './js/ai/aiEngine.js',
   './js/ai/learningAgent.js',
+  './js/ai/dnaAnalyzer.js',
   './js/document/layoutEngine.js',
+  './js/document/pdfParser.js',
   './js/document/logoBase64.js',
   './js/document/exportEngine.js',
   './manifest.json',

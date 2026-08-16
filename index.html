@@ -84,6 +84,7 @@
   <div class="nav-category">
     <div class="nav-category-title">Kütüphane & Havuz</div>
     <div class="nav-item" onclick="showPage('kaynak', this)"><span class="nav-icon">📂</span> Kaynak Havuzu</div>
+    <div class="nav-item" onclick="showPage('dna', this)"><span class="nav-icon">🧬</span> Soru DNA Analizi</div>
     <div class="nav-item" onclick="showPage('bankasi', this)"><span class="nav-icon">🏦</span> Soru Bankası</div>
   </div>
 
@@ -360,6 +361,7 @@
                 Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
               </p>
             </div>
+            <div id="dna-selector-test"></div>
             <div class="form-row">
               <div class="form-group">
                 <label>Sınıf</label>
@@ -449,6 +451,7 @@
                 Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
               </p>
             </div>
+            <div id="dna-selector-bag"></div>
             <div class="form-row">
               <div class="form-group">
                 <label>Sınıf</label>
@@ -531,6 +534,7 @@
                 Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
               </p>
             </div>
+            <div id="dna-selector-ck"></div>
             <div class="form-row">
               <div class="form-group">
                 <label>Sınıf</label>
@@ -623,6 +627,7 @@
                 Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
               </p>
             </div>
+            <div id="dna-selector-yaz"></div>
             <div class="form-row">
               <div class="form-group">
                 <label>Sınıf</label>
@@ -898,7 +903,93 @@
       </div>
     </div>
 
+    <!-- ===== SORU DNA ANALİZİ ===== -->
+    <div id="page-dna" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+
+        <!-- SOL: PDF Yükleme & Profil Listesi -->
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">🧬 PDF Yükle & Analiz Et</div>
+            <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:14px;">
+              MEB sınavı, LGS geçmiş yılları veya yayıncı deneme PDF'lerini yükleyin.
+              AI soruların çıkma felsefesini analiz ederek bir <strong>DNA profili</strong> oluşturur.
+            </p>
+
+            <div class="form-group">
+              <label>Kaynak Adı (örn: LGS 2023, MEB Deneme 1)</label>
+              <input type="text" id="dna-source-name" placeholder="Kaynak adını girin..." />
+            </div>
+
+            <div class="form-group">
+              <label>PDF Dosyası Seç</label>
+              <div id="dna-drop-zone" style="border: 2px dashed var(--primary); border-radius: 10px; padding: 28px; text-align: center; cursor: pointer; transition: background 0.2s; color: var(--text-muted); font-size: 0.85rem;"
+                   onclick="document.getElementById('dna-file-input').click()"
+                   ondragover="event.preventDefault(); this.style.background='rgba(108,99,255,0.08)'"
+                   ondragleave="this.style.background=''"
+                   ondrop="handleDnaDrop(event)">
+                <div style="font-size:2rem; margin-bottom:8px;">📄</div>
+                PDF dosyasını buraya sürükleyin veya tıklayın
+              </div>
+              <input type="file" id="dna-file-input" accept=".pdf" style="display:none" onchange="handleDnaFileSelect(event)" />
+            </div>
+
+            <div id="dna-file-info" style="display:none; font-size:0.8rem; color:var(--text-muted); margin-bottom:10px; padding:8px; background:var(--surface2); border-radius:6px;"></div>
+
+            <div id="dna-progress-container" style="display:none; margin-bottom:12px;">
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:6px;" id="dna-progress-label">PDF okunuyor...</div>
+              <div style="background:var(--surface2); border-radius:6px; height:8px; overflow:hidden;">
+                <div id="dna-progress-bar" style="height:100%; width:0%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s; border-radius:6px;"></div>
+              </div>
+            </div>
+
+            <div class="btn-group">
+              <button class="btn btn-primary" id="btn-dna-analyze" onclick="startDnaAnalysis()" disabled>
+                🧬 DNA Analizi Başlat
+              </button>
+            </div>
+          </div>
+
+          <!-- Kayıtlı DNA Profilleri -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-title">📋 Kayıtlı DNA Profilleri</div>
+            <div id="dna-profile-list" style="display:flex; flex-direction:column; gap:8px; font-size:0.82rem;">
+              <span style="color:var(--text-muted); font-style:italic;">Henüz analiz yapılmadı.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SAĞ: Analiz Sonucu & Profil Detayı -->
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>🔬 DNA Profil Detayı</span>
+              <span class="badge badge-primary" id="dna-status-badge">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-dna"></div>
+            <div id="dna-result-panel" style="min-height:200px; color:var(--text-muted); font-size:0.85rem; font-style:italic;">
+              Bir PDF yükleyip "DNA Analizi Başlat" butonuna tıklayın.<br>
+              AI soruların bilişsel düzeyini, senaryo tiplerini, tuzak stratejilerini ve konu dağılımını analiz edecek.
+            </div>
+          </div>
+
+          <!-- Modüllerde DNA Kullanımı Rehberi -->
+          <div class="card" style="margin-top:16px;">
+            <div class="card-title">💡 Nasıl Kullanılır?</div>
+            <div style="font-size:0.82rem; color:var(--text-muted); line-height:1.7;">
+              <strong>1.</strong> Bu sayfada bir kaynak PDF analiz edin → DNA profili oluşturun.<br>
+              <strong>2.</strong> Kavram Testi, Bağlamlı Soru, Yazılı Sınav veya Deneme modülüne gidin.<br>
+              <strong>3.</strong> Form üstündeki <span style="background:rgba(108,99,255,0.15); padding:1px 6px; border-radius:4px;">🧬 DNA Profili</span> seçicisinden kaynağı seçin.<br>
+              <strong>4.</strong> Üretilen sorular o kaynağın felsefesiyle, formatıyla ve zorluk dengesiyle hazırlanır.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
     <!-- ===== SORU BANKASI (YENİ) ===== -->
+
     <div id="page-bankasi" class="page-content" style="display:none;">
       <div class="card">
         <div class="card-title">🏦 Soru Bankası</div>
@@ -943,6 +1034,8 @@
 <script src="js/prompt/promptEngine.js"></script>
 <script src="js/ai/aiEngine.js"></script>
 <script src="js/ai/learningAgent.js"></script>
+<script src="js/ai/dnaAnalyzer.js"></script>
+<script src="js/document/pdfParser.js"></script>
 <script src="js/document/layoutEngine.js"></script>
 <script src="js/document/logoBase64.js"></script>
 <script src="js/document/exportEngine.js"></script>

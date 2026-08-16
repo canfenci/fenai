@@ -13,7 +13,7 @@ let tempWebSources = [];
 const pageMeta = {
   dashboard: { title: '📊 Kontrol Paneli', sub: 'FenAI Akıllı Fen Bilimleri Asistanı Genel Durum ve İstatistikler' },
   kaynak:  { title: '📂 Kaynak Havuzu',   sub: 'Özel ders notları, PDF veya makaleleri sisteme ekleyin ve yönetin' },
-  konu:    { title: '📖 Konu Anlatımı',    sub: 'Türkiye Yüzyılı Maarif Modeli müfredatına tam uyumlu konu anlatımı belgesi' },
+  dna:     { title: '🧬 Soru DNA Analizi', sub: 'MEB/LGS sınavlarının soru çıkma felsefesini öğren, aynı felsefede yeni sorular üret' },
   test:    { title: '📋 Kavram Testi',      sub: 'Kazanım odaklı, açıklayıcı soru analizli kavram testleri' },
   baglamli:{ title: '🧠 Bağlamlı Soru',    sub: 'Gerçek yaşam senaryolarına dayanan PISA/TIMSS tipi yeni nesil sorular' },
   calisma: { title: '📄 Çalışma Kağıdı',   sub: 'Öğrencinin kavramları yapılandırmasını kolaylaştıracak şablon etkinlikler' },
@@ -104,7 +104,12 @@ function showPage(name, element) {
   if (name === 'dashboard') {
     loadDashboardStats();
   }
-  
+
+  if (name === 'dna') {
+    loadDnaProfileList();
+    loadDnaSelectorsInModules();
+  }
+
   if (window.innerWidth <= 768) {
     document.getElementById('sidebar').classList.remove('open');
   }
@@ -113,6 +118,170 @@ function showPage(name, element) {
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('open');
 }
+
+// ============================================================
+// DNA ANALİZİ UI FONKSİYONLARI
+// ============================================================
+
+let dnaSelectedFile = null;
+let dnaExtractedText = '';
+
+function handleDnaFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) setDnaFile(file);
+}
+
+function handleDnaDrop(event) {
+  event.preventDefault();
+  document.getElementById('dna-drop-zone').style.background = '';
+  const file = event.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') setDnaFile(file);
+}
+
+function setDnaFile(file) {
+  dnaSelectedFile = file;
+  dnaExtractedText = '';
+  const info = document.getElementById('dna-file-info');
+  info.style.display = 'block';
+  info.innerHTML = `📄 <strong>${file.name}</strong> · ${(file.size / 1024).toFixed(0)} KB`;
+  document.getElementById('btn-dna-analyze').disabled = false;
+  document.getElementById('dna-drop-zone').innerHTML = `<div style="font-size:2rem;margin-bottom:8px;">✅</div><strong>${file.name}</strong> seçildi`;
+}
+
+async function startDnaAnalysis() {
+  if (!dnaSelectedFile) { showToast('Önce bir PDF dosyası seçin.', 'error'); return; }
+  const sourceName = document.getElementById('dna-source-name').value.trim() || dnaSelectedFile.name.replace('.pdf','');
+
+  const btn = document.getElementById('btn-dna-analyze');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analiz ediliyor...';
+
+  const badge = document.getElementById('dna-status-badge');
+  badge.textContent = 'Analiz Ediliyor';
+  badge.style.background = 'var(--warning, #f39c12)';
+
+  const progressCont = document.getElementById('dna-progress-container');
+  progressCont.style.display = 'block';
+  const progressBar = document.getElementById('dna-progress-bar');
+  const progressLabel = document.getElementById('dna-progress-label');
+
+  const loadingBar = document.getElementById('loading-dna');
+  if (loadingBar) loadingBar.classList.add('active');
+
+  try {
+    // 1) PDF metnini çıkar
+    progressLabel.textContent = 'PDF okunuyor...';
+    if (!window.FenAI.PdfParser) throw new Error('PDF Parser hazır değil.');
+
+    dnaExtractedText = await window.FenAI.PdfParser.extractText(dnaSelectedFile, (pct) => {
+      progressBar.style.width = (pct * 0.5) + '%';
+      progressLabel.textContent = `PDF okunuyor... %${pct}`;
+    });
+
+    progressBar.style.width = '55%';
+    progressLabel.textContent = 'AI analizi yapılıyor...';
+
+    // 2) AI ile DNA analizi
+    const profile = await window.FenAI.DnaAnalyzer.analyzeWithAI(dnaExtractedText, sourceName);
+    progressBar.style.width = '90%';
+
+    // 3) Profili kaydet
+    const savedId = await window.FenAI.DnaAnalyzer.saveProfile(profile);
+    progressBar.style.width = '100%';
+
+    // 4) Sonucu göster
+    document.getElementById('dna-result-panel').innerHTML = window.FenAI.DnaAnalyzer.buildSummaryHtml({ ...profile, tarih: new Date().toISOString() });
+    badge.textContent = '✅ Analiz Tamamlandı';
+    badge.style.background = 'var(--success, #2ecc71)';
+
+    showToast(`"${sourceName}" DNA profili oluşturuldu!`, 'success');
+    loadDnaProfileList();
+    loadDnaSelectorsInModules();
+
+  } catch (err) {
+    document.getElementById('dna-result-panel').innerHTML = `<span style="color:var(--danger, #e74c3c);">❌ Hata: ${err.message}</span>`;
+    badge.textContent = 'Hata';
+    badge.style.background = 'var(--danger, #e74c3c)';
+    showToast('DNA analizi başarısız: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🧬 DNA Analizi Başlat';
+    progressCont.style.display = 'none';
+    progressBar.style.width = '0%';
+    if (loadingBar) loadingBar.classList.remove('active');
+  }
+}
+
+async function loadDnaProfileList() {
+  const container = document.getElementById('dna-profile-list');
+  if (!container || !window.FenAI.DnaAnalyzer) return;
+
+  try {
+    const profiles = await window.FenAI.DnaAnalyzer.listProfiles();
+    if (profiles.length === 0) {
+      container.innerHTML = '<span style="color:var(--text-muted); font-style:italic;">Henüz analiz yapılmadı.</span>';
+      return;
+    }
+
+    container.innerHTML = profiles.map(p => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--surface2); border-radius:8px; border-left:3px solid var(--primary);">
+        <div>
+          <strong style="font-size:0.85rem;">${p.kaynak_adi || 'İsimsiz'}</strong><br>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${p.toplam_soru_tahmini || '?'} soru · ${new Date(p.tarih).toLocaleDateString('tr-TR')}</span>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="showDnaProfile(${p.id})" style="padding:4px 10px; font-size:0.75rem;">🔬 Detay</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDnaProfile(${p.id})" style="padding:4px 10px; font-size:0.75rem;">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<span style="color:var(--danger);">Profiller yüklenemedi.</span>';
+  }
+}
+
+async function showDnaProfile(id) {
+  const panel = document.getElementById('dna-result-panel');
+  if (!panel || !window.FenAI.DnaAnalyzer) return;
+  try {
+    const profile = await window.FenAI.DnaAnalyzer.getProfile(id);
+    panel.innerHTML = window.FenAI.DnaAnalyzer.buildSummaryHtml(profile);
+  } catch (e) {
+    panel.innerHTML = '<span style="color:var(--danger);">Profil yüklenemedi.</span>';
+  }
+}
+
+async function deleteDnaProfile(id) {
+  if (!confirm('Bu DNA profili silinsin mi?')) return;
+  await window.FenAI.DnaAnalyzer.deleteProfile(id);
+  showToast('DNA profili silindi.', 'success');
+  loadDnaProfileList();
+  loadDnaSelectorsInModules();
+}
+
+async function loadDnaSelectorsInModules() {
+  if (!window.FenAI.DnaAnalyzer) return;
+  const profiles = await window.FenAI.DnaAnalyzer.listProfiles();
+
+  const moduleIds = ['test', 'bag', 'ck', 'yaz'];
+  moduleIds.forEach(mod => {
+    const container = document.getElementById(`dna-selector-${mod}`);
+    if (!container) return;
+
+    const options = ['<option value="none">🧬 DNA Profili Kullanma</option>',
+      ...profiles.map(p => `<option value="${p.id}">${p.kaynak_adi}</option>`)
+    ].join('');
+
+    container.innerHTML = `
+      <div style="padding:10px 14px; background:rgba(0,201,167,0.07); border:1px dashed var(--secondary); border-radius:8px; margin-bottom:14px;">
+        <label style="font-weight:600; color:var(--secondary); font-size:0.82rem; display:block; margin-bottom:6px;">🧬 Soru DNA Profili (İsteğe Bağlı)</label>
+        <select id="dna-profile-select-${mod}" style="margin:0; background:var(--bg);">${options}</select>
+        <p style="font-size:0.72rem; color:var(--text-muted); margin-top:5px;">Seçilen kaynağın soru üretim felsefesi ve formatı kullanılır.</p>
+      </div>`;
+  });
+}
+
+
 
 function renderLearningAgentSuggestions() {
   const container = document.getElementById('learning-agent-suggestions');
