@@ -466,10 +466,10 @@ function restoreCachedContent() {
 // ============================================================
 const PROVIDER_MODELS = {
   gemini: [
-    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash (Varsayılan)' },
-    { value: 'gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
-    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' }
+    { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (Önerilen & Çok Hızlı)' },
+    { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash (Kararlı)' },
+    { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
+    { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro (Derin Akıl Yürütme)' }
   ],
   deepseek: [
     { value: 'deepseek-chat', label: 'DeepSeek V3 (Chat)' },
@@ -485,8 +485,8 @@ const PROVIDER_MODELS = {
     { value: 'anthropic/claude-3.5-sonnet', label: 'Claude 3.5 Sonnet' },
     { value: 'openai/gpt-4o', label: 'GPT-4o' },
     { value: 'openai/gpt-4o-mini', label: 'GPT-4o-mini' },
+    { value: 'google/gemini-2.0-flash-001', label: 'Gemini 2.0 Flash' },
     { value: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-    { value: 'google/gemini-2.5-pro', label: 'Gemini 2.5 Pro' },
     { value: 'deepseek/deepseek-chat', label: 'DeepSeek V3' },
     { value: 'meta/llama-3.3-70b-instruct', label: 'Llama 3.3 70B' }
   ],
@@ -547,7 +547,7 @@ function renderApiSettings() {
   
   const provider = selectEl.value;
   const savedKey = localStorage.getItem(provider + '_key') || '';
-  const isEditing = apiEditModes[provider];
+  const isEditing = apiEditModes[provider] || !savedKey;
   
   const defaultModel = PROVIDER_MODELS[provider]?.[0]?.value || '';
   const savedModel = localStorage.getItem(provider + '_model') || defaultModel;
@@ -564,18 +564,18 @@ function renderApiSettings() {
   
   if (provider === 'gemini') {
     title = 'Google Gemini API';
-    description = 'Google AI Studio\'dan aldığınız ücretsiz Gemini API anahtarını buraya ekleyebilirsiniz. Özel anahtar girilmezse dahili anahtar kullanılır.';
-    placeholder = 'AIzaSy...';
+    description = 'Google AI Studio\'dan (aistudio.google.com) aldığınız ücretsiz Gemini API anahtarınızı buraya yapıştırıp kaydedin.';
+    placeholder = 'AIzaSy... (Google AI Studio anahtarınız)';
     if (savedKey) {
-      statusText = '🟢 Özel Anahtar Kayıtlı';
+      statusText = '🟢 API Anahtarı Kayıtlı & Aktif';
       statusClass = 'badge-success';
     } else {
-      statusText = '🔵 Dahili Entegrasyon Aktif';
-      statusClass = 'badge-primary';
+      statusText = '🔴 API Anahtarı Bekleniyor';
+      statusClass = 'badge-warning';
     }
   } else if (provider === 'deepseek') {
     title = 'DeepSeek API';
-    description = 'DeepSeek API portalından aldığınız API anahtarını buraya ekleyebilirsiniz. (Model: deepseek-v3 veya R1)';
+    description = 'DeepSeek platformundan aldığınız API anahtarını buraya ekleyebilirsiniz. (deepseek-chat / deepseek-reasoner R1)';
     placeholder = 'sk-...';
     if (savedKey) {
       statusText = '🟢 Özel Anahtar Kayıtlı';
@@ -586,7 +586,7 @@ function renderApiSettings() {
     }
   } else if (provider === 'openai') {
     title = 'OpenAI API (Direct)';
-    description = 'OpenAI platformundan aldığınız API anahtarını girerek GPT-4o veya diğer modelleri doğrudan kullanabilirsiniz.';
+    description = 'OpenAI platformundan aldığınız API anahtarını girerek GPT-4o modellerini doğrudan kullanabilirsiniz.';
     placeholder = 'sk-...';
     if (savedKey) {
       statusText = '🟢 Özel Anahtar Kayıtlı';
@@ -630,7 +630,7 @@ function renderApiSettings() {
     }
   } else if (provider === 'nvidia') {
     title = 'Nvidia NIM API';
-    description = 'Nvidia build portalından aldığınız API anahtarını girerek Llama veya Nemotron modellerini doğrudan çağırabilirsiniz.';
+    description = 'Nvidia build portalından aldığınız API anahtarını girerek Llama modellerini doğrudan çağırabilirsiniz.';
     placeholder = 'nvapi-...';
     if (savedKey) {
       statusText = '🟢 Özel Anahtar Kayıtlı';
@@ -643,7 +643,7 @@ function renderApiSettings() {
   
   let html = `
     <div class="settings-group" style="margin: 0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
         <h3 style="margin: 0; border: none; padding: 0;">🔑 ${title}</h3>
         <span class="badge ${statusClass}" style="font-size: 0.75rem;">${statusText}</span>
       </div>
@@ -660,8 +660,8 @@ function renderApiSettings() {
     optionsHtml += `<option value="custom" ${!isPredefined ? 'selected' : ''}>Diğer (Manuel Gir)...</option>`;
     
     html += `
-      <div class="api-key-row" style="margin-bottom: 12px;">
-        <input type="password" id="api-key-input" placeholder="${placeholder}" value="${savedKey}" style="flex: 1;" />
+      <div class="api-key-row" style="margin-bottom: 12px; display: flex; gap: 8px;">
+        <input type="password" id="api-key-input" placeholder="${placeholder}" value="${savedKey}" style="flex: 1;" onkeydown="if(event.key==='Enter') saveApiKey('${provider}')" />
         <button class="btn btn-outline btn-sm" onclick="toggleApiKeyVisibility()" title="Anahtarı Göster/Gizle">👁</button>
       </div>
       <div class="model-select-row" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 6px;">
@@ -671,18 +671,20 @@ function renderApiSettings() {
         </select>
         <input type="text" id="api-model-custom-input" placeholder="Model adını yazın (örn: meta/llama-3-70b)..." style="display: ${isPredefined ? 'none' : 'block'}; padding: 8px; font-size: 0.85rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--text);" value="${isPredefined ? '' : savedModel}" />
       </div>
-      <div style="display: flex; gap: 8px; justify-content: flex-end;">
+      <div style="display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap;">
+        <button class="btn btn-outline btn-sm" onclick="testApiKey('${provider}')" title="API anahtarının çalıştığını doğrula">🧪 Test Et & Kaydet</button>
         <button class="btn btn-primary btn-sm" onclick="saveApiKey('${provider}')">💾 Kaydet</button>
-        <button class="btn btn-outline btn-sm" onclick="setApiEditMode('${provider}', false)">❌ İptal</button>
+        ${savedKey ? `<button class="btn btn-outline btn-sm" onclick="setApiEditMode('${provider}', false)">❌ Vazgeç</button>` : ''}
       </div>
     `;
   } else {
-    const maskedVal = savedKey ? '••••••••••••••••••••••••••••••••' : '';
+    const maskedVal = savedKey ? (savedKey.substring(0, 6) + '••••••••••••••••' + savedKey.substring(savedKey.length - 4)) : '';
     html += `
-      <div class="api-key-row">
-        <input type="password" id="api-key-input" placeholder="${savedKey ? '' : 'Anahtar bulunamadı...'}" value="${maskedVal}" readonly style="flex: 1; background: rgba(255,255,255,0.02); color: var(--text-muted);" />
-        <button class="btn btn-primary btn-sm" onclick="setApiEditMode('${provider}', true)">✏️ Düzenle</button>
-        ${savedKey ? `<button class="btn btn-danger btn-sm" onclick="clearApiKey('${provider}')">🗑️ Sil</button>` : ''}
+      <div class="api-key-row" style="display: flex; gap: 8px; align-items: center;">
+        <input type="text" id="api-key-input" value="${maskedVal}" readonly style="flex: 1; background: rgba(255,255,255,0.02); color: var(--text-muted); font-family: monospace;" />
+        <button class="btn btn-outline btn-sm" onclick="testApiKey('${provider}')" title="Bağlantıyı doğrula">🧪 Test Et</button>
+        <button class="btn btn-primary btn-sm" onclick="setApiEditMode('${provider}', true)">✏️ Değiştir</button>
+        <button class="btn btn-danger btn-sm" onclick="clearApiKey('${provider}')">🗑️ Sil</button>
       </div>
       <div style="margin-top: 12px; font-size: 0.8rem; display: flex; align-items: center; gap: 8px;">
         <span style="color: var(--text-muted);">Aktif Model:</span>
@@ -715,7 +717,11 @@ function saveApiKey(provider) {
     showToast('Lütfen geçerli bir API anahtarı girin.', 'error');
     return;
   }
+  
   localStorage.setItem(provider + '_key', val);
+  if (window.FenAI?.AppState) {
+    window.FenAI.AppState.setApiKey(provider, val);
+  }
   
   // Save model
   const dropdown = document.getElementById('api-model-select-dropdown');
@@ -727,13 +733,61 @@ function saveApiKey(provider) {
     }
     if (modelVal) {
       localStorage.setItem(provider + '_model', modelVal);
+      if (window.FenAI?.AppState) {
+        window.FenAI.AppState.setApiModel(provider, modelVal);
+      }
     }
   }
   
   apiEditModes[provider] = false;
   renderApiSettings();
   checkApiStatus();
-  showToast(`${provider.toUpperCase()} ayarları kaydedildi!`, 'success');
+  showToast(`✅ ${provider.toUpperCase()} API anahtarı başarıyla kaydedildi!`, 'success');
+}
+
+async function testApiKey(provider) {
+  const inputEl = document.getElementById('api-key-input');
+  let val = (inputEl && inputEl.value.trim()) || localStorage.getItem(provider + '_key') || '';
+  if (!val || val.includes('••••')) {
+    val = localStorage.getItem(provider + '_key') || '';
+  }
+  
+  if (!val) {
+    showToast('Lütfen önce test edilecek API anahtarını girin.', 'error');
+    return;
+  }
+  
+  // Temporarily store
+  localStorage.setItem(provider + '_key', val);
+  if (window.FenAI?.AppState) {
+    window.FenAI.AppState.setApiKey(provider, val);
+  }
+  
+  showToast(`🔍 ${provider.toUpperCase()} bağlantısı test ediliyor...`, 'info');
+  try {
+    if (provider === 'gemini') {
+      const res = await window.FenAI.Providers.callGemini('Kısa bir test mesajı. Sadece "Tamam" yanıtını ver.', 'Türkçe kısa cevap ver.');
+      showToast(`✅ Gemini API bağlantısı başarılı! Model yanıt verdi.`, 'success');
+      saveApiKey('gemini');
+    } else if (provider === 'deepseek') {
+      await window.FenAI.Providers.callDeepSeekDirect('Test', 'Tamam de.');
+      showToast(`✅ DeepSeek API bağlantısı başarılı!`, 'success');
+      saveApiKey('deepseek');
+    } else if (provider === 'openai') {
+      await window.FenAI.Providers.callOpenAIDirect('Test', 'Tamam de.');
+      showToast(`✅ OpenAI API bağlantısı başarılı!`, 'success');
+      saveApiKey('openai');
+    } else if (provider === 'openrouter') {
+      await window.FenAI.Providers.callOpenRouterDirect('Test', 'deepseek/deepseek-r1', 'Tamam de.');
+      showToast(`✅ OpenRouter API bağlantısı başarılı!`, 'success');
+      saveApiKey('openrouter');
+    } else {
+      showToast(`✅ ${provider.toUpperCase()} anahtarı kaydedildi.`, 'success');
+      saveApiKey(provider);
+    }
+  } catch (err) {
+    showToast(`❌ Bağlantı hatası: ${err.message || err}`, 'error');
+  }
 }
 
 function clearApiKey(provider) {
@@ -742,8 +796,11 @@ function clearApiKey(provider) {
   
   localStorage.removeItem(provider + '_key');
   localStorage.removeItem(provider + '_model');
+  if (window.FenAI?.AppState) {
+    window.FenAI.AppState.setApiKey(provider, '');
+  }
   
-  apiEditModes[provider] = false;
+  apiEditModes[provider] = true;
   renderApiSettings();
   checkApiStatus();
   showToast(`${provider.toUpperCase()} silindi.`, 'info');

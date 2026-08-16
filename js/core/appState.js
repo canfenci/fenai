@@ -73,13 +73,13 @@ window.FenAI.AppState = (() => {
     // API Modeli Getir/Kaydet
     getApiModel(provider) {
       const defaultModels = {
-        gemini: 'gemini-2.5-flash',
+        gemini: 'gemini-2.0-flash',
         deepseek: 'deepseek-chat',
         openai: 'gpt-4o',
         openrouter: 'deepseek/deepseek-r1',
         claude: 'claude-3-5-sonnet-20241022',
         perplexity: 'sonar',
-        nvidia: 'meta/llama-3.1-70b-instruct'
+        nvidia: 'meta/llama-3.3-70b-instruct'
       };
       return localStorage.getItem(`${provider}_model`) || defaultModels[provider] || '';
     },

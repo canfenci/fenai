@@ -17,49 +17,79 @@ window.FenAI.Providers = (() => {
 
   return {
     // ============================================================
-    // GEMINI 2.5 FLASH
+    // GEMINI FLASH / PRO
     // ============================================================
     async callGemini(prompt, systemInstruction) {
       const key = window.FenAI.AppState.getApiKey('gemini');
       if (!key) {
-        toast('Gemini API anahtarı ayarlarda tanımlı değil!', 'error');
+        toast('Gemini API anahtarı Ayarlar sayfasında tanımlı değil! Lütfen geçerli bir anahtar girip kaydedin.', 'error');
         throw new Error('Gemini anahtarı eksik');
       }
-      const model = window.FenAI.AppState.getApiModel('gemini');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      const model = window.FenAI.AppState.getApiModel('gemini') || 'gemini-2.0-flash';
+      
+      const modelsToTry = [model];
+      if (model !== 'gemini-2.0-flash') modelsToTry.push('gemini-2.0-flash');
+      if (model !== 'gemini-1.5-flash') modelsToTry.push('gemini-1.5-flash');
+
       const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: systemInstruction }] }
+        contents: [{ parts: [{ text: prompt }] }]
       };
-      let delay = 1000;
-      for (let attempt = 0; attempt < 5; attempt++) {
-        try {
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 60000);
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-          });
-          clearTimeout(timeout);
-          if (res.ok) {
-            const data = await res.json();
-            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) return text;
-            throw new Error("Boş yanıt alındı.");
+      if (systemInstruction && typeof systemInstruction === 'string' && systemInstruction.trim()) {
+        payload.systemInstruction = { parts: [{ text: systemInstruction.trim() }] };
+      }
+
+      let lastError = null;
+      for (const currentModel of modelsToTry) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${key}`;
+        let delay = 1000;
+        
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 60000);
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+            clearTimeout(timeout);
+
+            if (res.ok) {
+              const data = await res.json();
+              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) return text;
+              throw new Error("Gemini boş yanıt döndürdü.");
+            }
+
+            const errJson = await res.json().catch(() => null);
+            const errMsg = errJson?.error?.message || (await res.text().catch(() => ''));
+
+            if (res.status === 404 && modelsToTry.indexOf(currentModel) < modelsToTry.length - 1) {
+              console.warn(`Model ${currentModel} bulunamadı, yedek modele geçiliyor...`);
+              break; // Try next model
+            }
+
+            if (res.status === 400 && errMsg.includes('API_KEY_INVALID')) {
+              toast('Girilen Gemini API anahtarı geçersiz! Lütfen Google AI Studio anahtarınızı kontrol edin.', 'error');
+              throw new Error('Geçersiz Gemini API Anahtarı');
+            }
+
+            throw new Error(`Gemini API Hatası (${res.status}): ${errMsg || 'Bilinmeyen hata'}`);
+          } catch (e) {
+            lastError = e;
+            if (e.message && (e.message.includes('Geçersiz') || e.message.includes('API_KEY_INVALID'))) {
+              throw e;
+            }
+            if (attempt === 2) break;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
           }
-          const errText = await res.text();
-          throw new Error(`API hatası (${res.status}): ${errText}`);
-        } catch (e) {
-          if (attempt === 4) {
-            toast(`Gemini bağlantı hatası: ${e.message}`, 'error');
-            throw new Error(e);
-          }
-          await new Promise(resolve => setTimeout(resolve, delay));
-          delay *= 2;
         }
       }
+
+      toast(`Gemini bağlantı hatası: ${lastError?.message || 'Bağlantı kurulamadı'}`, 'error');
+      throw lastError || new Error('Gemini çağrısı başarısız.');
     },
 
     // ============================================================
