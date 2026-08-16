@@ -1,0 +1,14 @@
+fenai/
+├── index.html
+├── manifest.json
+├── sw.js (Service Worker)
+├── css/
+│   └── style.css (mevcut CSS'yi buraya taşı)
+├── js/
+│   ├── app.js (ana uygulama, navigasyon, başlangıç)
+│   ├── mufredat.js (müfredat verileri ve düzenleyici)
+│   ├── api.js (AI çağrıları: Gemini, DeepSeek, OpenRouter)
+│   ├── ui.js (bildirimler, yükleme, render işlemleri)
+│   ├── word.js (Word indirme ve dönüştürme)
+│   └── database.js (IndexedDB işlemleri – soru bankası)
+└── icons/ (PWA simgeleri)

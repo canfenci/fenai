@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CanFenci Teacher Studio – Eğitim Teknolojileri Ekosistemi</title>
+  <link rel="icon" type="image/png" href="assets/icons/icon.png" />
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/sidebar.css" />
+  <link rel="stylesheet" href="css/header.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/forms.css" />
+  <link rel="stylesheet" href="css/cards.css" />
+  <link rel="stylesheet" href="css/buttons.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.8.2/docx.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo" style="padding: 20px 20px 14px; text-align: center; border-bottom: 1px solid var(--border);">
+    <img src="assets/logo/logo.png" alt="CanFenci Logo" style="max-width: 100%; height: auto; max-height: 48px; display: block; margin: 0 auto;" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='block';" />
+    <div id="logo-fallback" style="display: none;">
+      <h1 style="font-size: 1.5rem; font-weight: 800; color: var(--primary); letter-spacing: 0.5px; margin: 0;">🧬 CanFenci</h1>
+      <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px;">Eğitim Teknolojileri Ekosistemi</p>
+    </div>
+  </div>
+
+  <!-- Çalışma Alanı Seçici (Workspace Selector) -->
+  <div class="workspace-selector">
+    <div class="workspace-select-btn" onclick="showWorkspaceNotification()">
+      <span>💼 Teacher Studio</span>
+      <span class="workspace-select-arrow">▼</span>
+    </div>
+  </div>
+
+  <div class="api-status" style="padding: 10px 20px; border-bottom: 1px solid var(--border);">
+    <div class="api-status-item" style="font-size: 0.72rem; margin-bottom: 4px;">
+      <div class="api-dot active" id="dot-gemini"></div>
+      <span id="label-gemini">Gemini API (Dahili)</span>
+    </div>
+  </div>
+
+  <!-- GEZİNME KATEGORİLERİ -->
+  <div class="nav-category">
+    <div class="nav-category-title">Teacher Studio</div>
+    <div class="nav-item active" onclick="showPage('dashboard', this)"><span class="nav-icon">📊</span> Stüdyo Paneli</div>
+  </div>
+
+  <div class="nav-category">
+    <div class="nav-category-title">Üretim Modülleri</div>
+    <!-- FenAI Modülü Alt Menüsü -->
+    <div class="nav-item" style="font-weight: 700; color: var(--primary); pointer-events: none;"><span class="nav-icon">🧠</span> FenAI Studio</div>
+    <div class="nav-nested">
+      <div class="nav-item" onclick="showPage('konu', this)"><span class="nav-icon">📖</span> Konu Anlatımı</div>
+      <div class="nav-item" onclick="showPage('calisma', this)"><span class="nav-icon">📄</span> Çalışma Kağıdı</div>
+      <div class="nav-item" onclick="showPage('baglamli', this)"><span class="nav-icon">🧠</span> Bağlamlı Soru</div>
+      <div class="nav-item" onclick="showPage('test', this)"><span class="nav-icon">📋</span> Kavram Testi</div>
+      <div class="nav-item" onclick="showPage('yazili', this)"><span class="nav-icon">📝</span> Yazılı Sınav</div>
+      <div class="nav-item" onclick="showPage('deneme', this)"><span class="nav-icon">📝</span> Deneme Sınavı</div>
+    </div>
+  </div>
+
+  <div class="nav-category">
+    <div class="nav-category-title">Kütüphane & Havuz</div>
+    <div class="nav-item" onclick="showPage('kaynak', this)"><span class="nav-icon">📂</span> Kaynak Havuzu</div>
+    <div class="nav-item" onclick="showPage('bankasi', this)"><span class="nav-icon">🏦</span> Soru Bankası</div>
+  </div>
+
+  <div class="nav-category">
+    <div class="nav-category-title">Gelecek Araçlar</div>
+    <div class="nav-item disabled" onclick="showRoadmapNotification('Lesson Studio')">
+      <span class="nav-icon">📽️</span> Lesson Studio
+      <span class="badge-roadmap">Beta</span>
+    </div>
+    <div class="nav-item disabled" onclick="showRoadmapNotification('Exam Studio')">
+      <span class="nav-icon">📝</span> Exam Studio
+      <span class="badge-roadmap">Plan</span>
+    </div>
+    <div class="nav-item disabled" onclick="showRoadmapNotification('Analytics')">
+      <span class="nav-icon">📈</span> Analytics
+      <span class="badge-roadmap">Plan</span>
+    </div>
+  </div>
+
+  <div class="nav-category">
+    <div class="nav-category-title">Ekosistem Portalları</div>
+    <div class="nav-item disabled" onclick="showPortalNotification('Student Hub')">
+      <span class="nav-icon">🎓</span> Student Hub
+      <span class="badge-roadmap">Beta</span>
+    </div>
+    <div class="nav-item disabled" onclick="showPortalNotification('Digital Academy')">
+      <span class="nav-icon">🏛️</span> Digital Academy
+      <span class="badge-roadmap">Plan</span>
+    </div>
+    <div class="nav-item" onclick="showPage('ayarlar', this)"><span class="nav-icon">⚙️</span> Ayarlar</div>
+  </div>
+
+  <div class="sidebar-footer" style="padding: 12px 20px; font-size: 0.65rem; border-top: 1px solid var(--border); color: var(--text-muted); text-align: center; margin-top: auto;">
+    CanFenci © 2026 · Ecosystem v2.0
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button id="menu-toggle" onclick="toggleSidebar()">☰</button>
+      <div>
+        <h2 id="page-title">📖 Konu Anlatımı</h2>
+        <div class="topbar-sub" id="page-sub">Maarif Modeli müfredatına uygun konu anlatımı üret</div>
+      </div>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <label for="ai-engine-select" style="font-size:0.75rem; color:var(--text-muted); font-weight:600; white-space:nowrap;">Motor:</label>
+        <select id="ai-engine-select" onchange="onEngineChange()" style="padding:6px 12px; font-size:0.8rem; background:var(--surface2); width:auto; margin:0;">
+          <option value="smart" selected>🧠 Canfenci Akıllı Dağıtım Modu</option>
+          <option value="gemini">💎 Gemini 2.5 Flash</option>
+          <option value="deepseek">🐳 DeepSeek-V3 (Özel Anahtar)</option>
+          <option value="openai">⚡ OpenAI GPT-4o (Direct)</option>
+          <option value="claude">🎭 Claude 3.5 Sonnet (Direct API)</option>
+          <option value="perplexity">🔍 Perplexity Sonar (Direct)</option>
+          <option value="nvidia">🎨 Nvidia NIM (Llama 3.1 70b)</option>
+          <option value="openrouter-r1">🧠 DeepSeek-R1 (OpenRouter)</option>
+          <option value="openrouter-claude">🎭 Claude 3.5 Sonnet (OpenRouter)</option>
+          <option value="openrouter-gpt">⚡ GPT-4o (OpenRouter)</option>
+          <option value="openrouter">🌐 OpenRouter (Özel Seçilen Model)</option>
+        </select>
+      </div>
+      <span class="badge badge-success" id="engine-badge">Akıllı Akış Aktif</span>
+      <button id="btn-pwa-install" class="btn btn-primary btn-sm" style="display:none; align-items:center; gap:6px; font-weight:600; padding:6px 12px; margin-left:4px;" onclick="installPWA()">📲 Uygulamayı Yükle</button>
+      <div class="user-profile" style="margin-left: 8px;">
+        <div class="user-avatar">CÖ</div>
+        <span>Canfenci Öğretmen</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ===== KONTROL PANELİ (DASHBOARD) ===== -->
+    <div id="page-dashboard" class="page-content">
+      <div class="card" style="background: linear-gradient(135deg, var(--surface2) 0%, rgba(108, 99, 255, 0.1) 100%); border-color: var(--primary);">
+        <div class="card-title" style="color: var(--primary); font-size: 1.1rem; text-transform: none; letter-spacing: 0.5px;">💼 CanFenci Teacher Studio'ya Hoş Geldiniz!</div>
+        <p style="font-size: 0.88rem; color: var(--text); line-height: 1.6; margin-top: 8px;">
+          Fen Bilimleri öğretmenleri için özel olarak tasarlanmış profesyonel içerik yayıncılık ve üretim ekosistemi. Yapay zeka destekli <strong>FenAI</strong> stüdyosu ile maarif modeline uygun konu anlatımları ve ölçme araçları oluşturabilir, hazırladığınız ders kaynaklarını yönetebilirsiniz.
+        </p>
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🏦</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-total-docs">0</span>
+            <span class="stat-label">Kütüphane Belgeleri</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📂</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-total-resources">0</span>
+            <span class="stat-label">Kayıtlı Ders Kaynağı</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-info">
+            <span class="stat-value" id="stat-active-engine">Akıllı Akış</span>
+            <span class="stat-label">Aktif AI Motoru</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎓</div>
+          <div class="stat-info">
+            <span class="stat-value">TYMM 2024</span>
+            <span class="stat-label">Müfredat Sürümü</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bugün ne üretmek istiyorsunuz? Hızlı Seçiciler -->
+      <div class="card" style="margin-top: 15px;">
+        <div class="card-title" style="color: var(--primary); font-size: 0.95rem; text-transform: none; margin-bottom: 12px;">Bugün ne üretmek istiyorsunuz?</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showRoadmapNotification('Lesson Studio')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">📘</span> Ders Sunumu
+          </div>
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('konu')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">🤖</span> FenAI Studio
+          </div>
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('test')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">📝</span> Ölçme-Değ.
+          </div>
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('calisma')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">📄</span> Çalışma Kağıdı
+          </div>
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showRoadmapNotification('Presentation Studio')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">🎥</span> Sunum Tasarımı
+          </div>
+          <div class="stat-card" style="cursor: pointer; padding: 12px; font-weight: 600; font-size: 0.85rem; border-left: 3px solid var(--primary);" onclick="showPage('bankasi')">
+            <span style="font-size: 1.4rem; margin-right: 6px;">📚</span> Kütüphane
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top: 15px;">
+        <!-- Son Çalışmalar -->
+        <div class="card">
+          <div class="card-title">📝 Son Çalışmalarım</div>
+          <div id="db-recent-projects" class="recent-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <p style="font-size:0.8rem; color:var(--text-muted); font-style:italic;">Henüz döküman üretilmedi.</p>
+          </div>
+        </div>
+
+        <!-- Favori Şablonlar -->
+        <div class="card">
+          <div class="card-title">⭐ Favori Şablonlar</div>
+          <div class="recent-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--surface2); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--secondary);">
+              <span>📘 LGS 1. Ünite Özet Konu Kartı</span>
+              <a href="#" onclick="loadTemplate('konu', 'Mevsimlerin Oluşumu')" style="color: var(--secondary); text-decoration: none; font-weight:600;">Hızlı Yükle</a>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--surface2); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--secondary);">
+              <span>📝 PISA Akıl Yürütme Sınavı Şablonu</span>
+              <a href="#" onclick="loadTemplate('baglamli', 'Enerji Dönüşümleri')" style="color: var(--secondary); text-decoration: none; font-weight:600;">Hızlı Yükle</a>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; background: var(--surface2); padding: 8px 12px; border-radius: 6px; border-left: 3px solid var(--secondary);">
+              <span>📄 Kavram Yanılgısı Test Şablonu</span>
+              <a href="#" onclick="loadTemplate('test', 'DNA ve Genetik Kod')" style="color: var(--secondary); text-decoration: none; font-weight:600;">Hızlı Yükle</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-top: 10px;">
+        <!-- Son Kullanılan Kazanımlar -->
+        <div class="card">
+          <div class="card-title">🎯 Son Kullanılan Kazanımlar</div>
+          <div id="db-recent-achievements" class="recent-list" style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <span class="badge badge-primary">F.8.1.1.1 (Mevsimler)</span>
+            <span class="badge badge-primary">F.8.2.1.3 (DNA)</span>
+            <span class="badge badge-primary">F.8.3.1.2 (Sıvı Basıncı)</span>
+          </div>
+        </div>
+
+        <!-- AI Önerileri -->
+        <div class="card">
+          <div class="card-title">🤖 Öğrenen AI Ajanı Önerileri</div>
+          <div id="learning-agent-suggestions" class="recent-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.8rem; color: var(--text);">
+            <div style="background: rgba(108, 99, 255, 0.04); padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); line-height: 1.4;">
+              💡 <strong>LGS Önerisi:</strong> F.8.3.1 (Katı ve Sıvı Basıncı) kazanımı için bir PISA bağlamlı soru üretmek, kavramsal netliği artırabilir.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ekosistem Gelecek Planları (Roadmap) -->
+      <div class="card" style="margin-top: 10px;">
+        <div class="card-title" style="color: var(--secondary); font-size: 0.85rem;">🚀 CanFenci Stüdyoları Yol Haritası</div>
+        <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:10px;">
+          Gelecek stüdyo modülleri ile ders sunumları hazırlayabilecek, öğrenci takibi yapabilecek ve tam etkileşimli sınavlar tasarlayabileceksiniz.
+        </p>
+        <div class="roadmap-grid">
+          <div class="roadmap-card">
+            <div class="roadmap-title">📽️ Lesson Studio</div>
+            <div class="roadmap-desc">Ders içi etkileşimli sunumlar, deney videoları ve maarif modeline uygun ders akış slaytları hazırlama aracı.</div>
+            <span class="roadmap-status">Beta Modunda</span>
+          </div>
+          <div class="roadmap-card">
+            <div class="roadmap-title">📝 Exam Studio</div>
+            <div class="roadmap-desc">Online deneme sınavları oluşturma, QR kodlu anketler hazırlama ve otomatik optik okuma sistemleri.</div>
+            <span class="roadmap-status" style="color: var(--primary); background: rgba(108,99,255,0.1);">Planlanıyor</span>
+          </div>
+          <div class="roadmap-card">
+            <div class="roadmap-title">📈 Analytics Studio</div>
+            <div class="roadmap-desc">Öğrenci karneleri, kazanım eksiklik analizleri ve stüdyoda üretilen ders etkinliklerinin başarı raporları.</div>
+            <span class="roadmap-status" style="color: var(--primary); background: rgba(108,99,255,0.1);">Planlanıyor</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== KAYNAK HAVUZU ===== -->
+    <div id="page-kaynak" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">📂 Ders Kaynağı ve PDF Belgesi Ekle</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          Buraya bir ders kitabı bölümü, akademik makale veya kendi hazırladığınız ders notlarını ekleyebilirsiniz. Eklediğiniz kaynak sistem hafızasına alınır ve diğer tüm üretim modüllerinde bu kaynağa tam sadık kalınarak üretim yapılabilir.
+        </p>
+        <div class="form-group">
+          <label>Kaynak Başlığı</label>
+          <input type="text" id="kaynak-baslik" placeholder="Örn: 6. Sınıf Sindirim Sistemi Bölümü" />
+        </div>
+        <div class="form-group">
+          <label>Belge Yükle (PDF veya TXT)</label>
+          <div class="drag-area" onclick="document.getElementById('file-uploader').click()">
+            <span class="drag-icon">📄</span>
+            <p>Bilgisayarınızdan bir ders notu, TXT veya PDF seçmek için tıklayın.</p>
+            <span style="font-size:0.75rem; color:var(--text-muted);">Maksimum dosya boyutu 10MB (Client-side PDF parsing)</span>
+            <input type="file" id="file-uploader" accept=".pdf,.txt" onchange="handleFileUpload(event)" style="display: none;" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Kaynak Metni İçeriği</label>
+          <textarea id="kaynak-metin" style="min-height: 250px;" placeholder="Yapay zekanın birebir temel alacağı döküman metnini buraya yapıştırın veya yukarıdan PDF/TXT dosyası seçerek otomatik çıkartın..."></textarea>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" onclick="saveSourceData()">💾 Kaynağı Kaydet</button>
+          <button class="btn btn-danger" onclick="clearSourceData()">🗑️ Kaynağı Kaldır / Temizle</button>
+        </div>
+      </div>
+
+      <!-- Web Sayfası / YouTube Videosu Analiz Kartı -->
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-title">🌐 Web Sayfası veya YouTube Videosu Analiz Et</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          Bir web sayfası veya YouTube videosunun URL'sini girerek o sınıf seviyesindeki müfredat kazanımlarına uygunluğunu denetleyebilirsiniz. Uygun bulunursa geçici bir ders kaynağı olarak üretime dahil edilecektir (oturumsal hafızada tutulur, kalıcı kaydedilmez).
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Kaynak URL Adresi</label>
+            <input type="url" id="kaynak-url" placeholder="Örn: https://www.youtube.com/watch?v=... veya https://tr.wikipedia.org/wiki/..." />
+          </div>
+          <div class="form-group" style="max-width: 200px;">
+            <label>Sınıf Seviyesi</label>
+            <select id="kaynak-url-sinif">
+              <option value="5">5. Sınıf</option>
+              <option value="6">6. Sınıf</option>
+              <option value="7">7. Sınıf</option>
+              <option value="8">8. Sınıf</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="btn-analiz-url" onclick="analyzeUrlSource()">🔍 Kazanım Uygunluğunu Denetle</button>
+        </div>
+        <div id="kaynak-url-sonuc" style="margin-top: 15px;"></div>
+      </div>
+
+      <!-- Kayıtlı Kaynaklar Havuzu Listesi -->
+      <div class="card" id="kaynaklar-liste-card" style="margin-top: 20px;">
+        <div class="card-title">📂 Kayıtlı Kaynaklar Havuzu</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          Sisteme eklenmiş ve üretim modüllerinde seçilmeye hazır olan tüm kaynak dokümanlar.
+        </p>
+        <div id="kaynaklar-liste"></div>
+      </div>
+    </div>
+
+    <!-- ===== KONU ANLATIMI ===== -->
+    <div id="page-konu" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">📚 Müfredat Seçimi (TYMM 2024 Uyumlu)</div>
+            <div class="form-group" id="use-source-container-konu" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-konu" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="konu-sinif" onchange="loadUnits('konu')">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Ünite / Tema</label>
+                <select id="konu-unite" onchange="loadTopics('konu')"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Konu / Kazanım Detayı</label>
+              <select id="konu-topic"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Anlatım Düzeyi</label>
+                <select id="konu-duzey">
+                  <option value="baslangic">Başlangıç (Temel Kavramlar)</option>
+                  <option value="orta" selected>Orta Düzey (Kazanım Odaklı)</option>
+                  <option value="ileri">İleri Düzey (Derinlemesine & Üst Düzey)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Anlatım Stili</label>
+                <select id="konu-stil">
+                  <option value="klasik">Klasik Ders Anlatımı</option>
+                  <option value="hikaye">Hikâye & Senaryo Tabanlı</option>
+                  <option value="soru-cevap">Sokratik / Soru-Cevap Formatı</option>
+                  <option value="ozet">Şematik Özet / Madde Madde</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Ek Notlar / Özel Vurgulanacak Noktalar (isteğe bağlı)</label>
+              <textarea id="konu-not" placeholder="Örneğin: 'Sürtünmenin ısıya dönüşümünü bir deney tasarlayarak anlat...'"></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="generateKonu()" id="btn-konu">✨ Konu Anlatımı Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen İçerik Önizlemesi</span>
+              <span class="badge badge-primary" id="routed-badge-konu">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-konu"></div>
+            <div class="output-box" id="output-konu"><span class="output-placeholder">Konu anlatımı burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-konu')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-konu','konu_anlatimi')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-konu','konu_anlatimi')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-konu','konu_anlatimi')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-konu','konu_anlatimi')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+
+    <!-- ===== KAVRAM TESTİ ===== -->
+    <div id="page-test" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">📋 Test Parametreleri</div>
+            <div class="form-group" id="use-source-container-test" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-test" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="test-sinif" onchange="loadUnits('test')">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Ünite / Tema</label>
+                <select id="test-unite" onchange="loadTopics('test')"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Konu / Kazanım Detayı</label>
+              <select id="test-topic"></select>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Soru Sayısı</label>
+                <select id="test-sayi">
+                  <option value="5">5 Soru</option>
+                  <option value="10" selected>10 Soru</option>
+                  <option value="15">15 Soru</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Soru Tipi</label>
+                <select id="test-tip">
+                  <option value="coktan" selected>Çoktan Seçmeli (4 şık)</option>
+                  <option value="dogru-yanlis">Doğru-Yanlış Cümleleri</option>
+                  <option value="karisik">Karma Test</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Zorluk Seviyesi</label>
+                <select id="test-zorluk">
+                  <option value="kolay">Temel Bilgi (Kolay)</option>
+                  <option value="orta" selected>Uygulama & Analiz (Orta)</option>
+                  <option value="zor">Muhakeme (Zor)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+              <textarea id="test-gorsel" rows="3" placeholder="Örneğin: 'Soru 3'te bir tablo oluştur: Başlık: Madde Yoğunlukları, sütunlar: Madde, Yoğunluk (g/cm³), veriler: Su 1, Alkol 0.8, Demir 7.8' veya 'Bir grafik çiz: X ekseni zaman (dk), Y ekseni sıcaklık (°C), noktalar: (0,20), (5,40), (10,60)'"></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="generateTest()" id="btn-test">✨ Test Soruları Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen Soru Kitapçığı</span>
+              <span class="badge badge-primary" id="routed-badge-test">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-test"></div>
+            <div class="output-box" id="output-test"><span class="output-placeholder">Test soruları burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-test')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-test','kavram_testi')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-test','kavram_testi')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-test','kavram_testi')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-test','kavram_testi')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BAĞLAMLI SORU ===== -->
+    <div id="page-baglamli" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">🧠 PISA Tarzı Senaryolu Bağlamlı Soru Üretici</div>
+            <div class="form-group" id="use-source-container-bag" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-bag" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="bag-sinif" onchange="loadUnits('bag')">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Ünite / Tema</label>
+                <select id="bag-unite" onchange="loadTopics('bag')"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Konu / Kazanım Detayı</label>
+              <select id="bag-topic"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Senaryo Bağlamı</label>
+                <select id="bag-senaryo">
+                  <option value="gunluk">Günlük Yaşam Mühendislik Problemleri</option>
+                  <option value="cevre">Çevre ve İklim Krizi Bilinci</option>
+                  <option value="teknoloji">Modern Bilimsel Buluşlar ve Teknolojiler</option>
+                  <option value="saglik">Sağlıklı Yaşam ve Vücudumuz</option>
+                  <option value="uzay">Uzay Keşifleri ve Astronomi</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Soru Sayısı (Senaryoya Bağlı)</label>
+                <select id="bag-sayi">
+                  <option value="3" selected>3 Soru</option>
+                  <option value="5">5 Soru</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+              <textarea id="bag-gorsel" rows="3" placeholder="Örneğin: 'Senaryo metninde bir tablo ver: Yıllara göre CO2 salınımı, sütunlar: Yıl, Salınım (milyon ton), veriler: 2010, 35; 2015, 42; 2020, 50' veya 'Bir grafik çiz: X ekseni haftalar, Y ekseni ağırlık (kg), noktalar: (1,70), (4,68), (8,65)'"></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="generateBaglamli()" id="btn-bag">✨ Bağlamlı Soru Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen PISA Tarzı Çalışma Belgesi</span>
+              <span class="badge badge-primary" id="routed-badge-bag">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-bag"></div>
+            <div class="output-box" id="output-bag"><span class="output-placeholder">Senaryolar ve sorular burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-bag')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-bag','baglamli_sorular')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-bag','baglamli_sorular')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-bag','baglamli_sorular')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-bag','baglamli_sorular')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== ÇALIŞMA KAĞIDI ===== -->
+    <div id="page-calisma" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">📄 Çalışma Kağıdı Şablonları</div>
+            <div class="form-group" id="use-source-container-ck" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-ck" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="ck-sinif" onchange="loadUnits('ck')">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Ünite / Tema</label>
+                <select id="ck-unite" onchange="loadTopics('ck')"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Konu / Kazanım Detayı</label>
+              <select id="ck-topic"></select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Etkinlik Formatı</label>
+                <select id="ck-tur">
+                  <option value="bosluk" selected>Kelimelerle Boşluk Doldurma</option>
+                  <option value="eslestirme">Kavram-Tanım Eşleştirme</option>
+                  <option value="kavram-haritasi">Kavram Haritası & Yapılandırılmış Grid</option>
+                  <option value="dogru-yanlis">Doğru-Yanlış Etkinliği</option>
+                  <option value="acik-uclu">Açık Uçlu (Kısa Cevaplı) Soruları</option>
+                  <option value="balik-kilcigi">Balık Kılçığı Analiz Diyagramı</option>
+                  <option value="karisik">Karma Etkinlik Seti</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Öğe/Soru Sayısı</label>
+                <select id="ck-sayi">
+                  <option value="1">1 Öğe</option>
+                  <option value="2">2 Öğe</option>
+                  <option value="3">3 Öğe</option>
+                  <option value="4">4 Öğe</option>
+                  <option value="5" selected>5 Öğe</option>
+                  <option value="6">6 Öğe</option>
+                  <option value="7">7 Öğe</option>
+                  <option value="8">8 Öğe</option>
+                  <option value="9">9 Öğe</option>
+                  <option value="10">10 Öğe</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+              <textarea id="ck-gorsel" rows="3" placeholder="Örneğin: 'Boşluk doldurma etkinliğinde bir tablo kullan: Hücre organelleri ve görevleri tablosu, sütunlar: Organel, Görev, veriler: Mitokondri, Enerji üretimi; Ribozom, Protein sentezi'"></textarea>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-primary" onclick="generateCalisma()" id="btn-ck">✨ Çalışma Kağıdı Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen Öğrenci Etkinliği</span>
+              <span class="badge badge-primary" id="routed-badge-ck">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-ck"></div>
+            <div class="output-box" id="output-ck"><span class="output-placeholder">Etkinlikler burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-ck')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-ck','calisma_kagidi')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-ck','calisma_kagidi')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-ck','calisma_kagidi')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-ck','calisma_kagidi')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== YAZILI SINAV ===== -->
+    <div id="page-yazili" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">📝 Yazılı Sınav Kompozisyon Yapısı</div>
+            <div class="form-group" id="use-source-container-yaz" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-yaz" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="yaz-sinif" onchange="loadUnits('yaz')">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Ünite / Tema</label>
+                <select id="yaz-unite" onchange="loadTopics('yaz')"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Konu / Kazanım Detayı</label>
+              <select id="yaz-topic" onchange="loadCiktilar()"></select>
+            </div>
+            <div class="form-group" id="yaz-cikti-container">
+              <label>Öğrenme Çıktısı (Kazanım Açıklaması & Kod)</label>
+              <select id="yaz-cikti"></select>
+            </div>
+            <div class="btn-group" style="margin-bottom: 20px;">
+              <button class="btn btn-primary btn-sm" onclick="addYaziliCikti()">➕ Kazanım Ekle</button>
+            </div>
+            <div class="form-group">
+              <label>📊 Görsel/Tablo/Grafik İsteği (Opsiyonel)</label>
+              <textarea id="yaz-gorsel" rows="3" placeholder="Örneğin: 'Bir soruda grafik yorumlat: Sıcaklık-zaman grafiği, X: zaman (dk), Y: sıcaklık (°C), noktalar: (0,0), (5,20), (10,100), (15,100)'"></textarea>
+            </div>
+            <div id="yaz-sorular-container">
+              <div class="card-title" style="margin-top:16px; font-size:0.8rem; color:var(--text-muted);">Sınav Kazanım ve Soru Dağılımı Yapısı</div>
+              <div id="yaz-sorular-list"></div>
+            </div>
+            <div style="margin-top:16px; padding:12px; background:var(--bg); border-radius:8px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border);">
+              <span style="font-size:0.85rem; color:var(--text-muted);">Sınav Puan Dağılımı Toplamı:</span>
+              <span style="font-size:1.1rem; font-weight:700; color:var(--secondary);" id="toplam-puan">0 Puan</span>
+            </div>
+            <div class="btn-group" style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="generateYazili()" id="btn-yaz">✨ Resmi Sınav Evrakı Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen Sınav Evrakı & Dereceli Anahtar</span>
+              <span class="badge badge-primary" id="routed-badge-yaz">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-yaz"></div>
+            <div class="output-box" id="output-yaz"><span class="output-placeholder">Resmi sınav kağıdı burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-yaz')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-yaz','yazili_sinav')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-yaz','yazili_sinav')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-yaz','yazili_sinav')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-yaz','yazili_sinav')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== DENEME SINAVI ===== -->
+    <div id="page-deneme" class="page-content" style="display:none;">
+      <div class="workspace-layout">
+        <div class="workspace-sidebar">
+          <div class="card">
+            <div class="card-title">📝 Deneme Sınavı Sihirbazı</div>
+            
+            <div class="form-group" id="use-source-container-deneme" style="margin-bottom:16px; padding:14px; background:rgba(108,99,255,0.06); border: 1px dashed var(--primary); border-radius:8px;">
+              <label style="font-weight:600; color:var(--text); display:block; margin-bottom:8px;">📂 Kaynak Odaklı Üretim (İsteğe Bağlı)</label>
+              <select id="use-source-select-deneme" style="margin:0; background:var(--bg);">
+                <option value="none" selected>❌ Kaynak Kullanma (Varsayılan Müfredat)</option>
+              </select>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">
+                Seçeceğiniz kaynak doküman AI tarafından temel alınacak ve kazanım dışına çıkılmayacaktır.
+              </p>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sınıf</label>
+                <select id="deneme-sinif" onchange="denemeSinifDegisti()">
+                  <option value="5">5. Sınıf (Maarif Modeli)</option>
+                  <option value="6">6. Sınıf (Maarif Modeli)</option>
+                  <option value="7">7. Sınıf (Maarif Modeli)</option>
+                  <option value="8">8. Sınıf (LGS Müfredatı)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Deneme Türü</label>
+                <select id="deneme-tip" onchange="denemeTipDegisti()">
+                  <option value="genel" selected>1. Genel Deneme (Tüm Müfredat)</option>
+                  <option value="konu">2. Konu Denemesi (Tek Konu / Kazanım)</option>
+                  <option value="ogretmen">3. Öğretmen Seçimi (Özel Seçim)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 1. Genel Deneme Alanı -->
+            <div id="deneme-panel-genel" class="deneme-panel">
+              <div class="form-group">
+                <label>Soru Sayısı</label>
+                <select id="deneme-genel-sayi">
+                  <option value="10">10 Soru</option>
+                  <option value="15">15 Soru</option>
+                  <option value="20" selected>20 Soru (LGS Standartı)</option>
+                  <option value="30">30 Soru</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 2. Konu Denemesi Alanı -->
+            <div id="deneme-panel-konu" class="deneme-panel" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ünite / Tema</label>
+                  <select id="deneme-konu-unite" onchange="loadTopics('deneme-konu')"></select>
+                </div>
+                <div class="form-group">
+                  <label>Konu / Kazanım Detayı</label>
+                  <select id="deneme-konu-topic" onchange="loadDenemeKonuCiktilar()"></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Öğrenme Çıktısı (Kapsam)</label>
+                <select id="deneme-konu-cikti">
+                  <!-- Dinamik olarak yüklenecek -->
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Soru Sayısı</label>
+                <select id="deneme-konu-sayi">
+                  <option value="5" selected>5 Soru</option>
+                  <option value="10">10 Soru</option>
+                  <option value="15">15 Soru</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 3. Öğretmen Seçimi Alanı -->
+            <div id="deneme-panel-ogretmen" class="deneme-panel" style="display:none;">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Ünite / Tema</label>
+                  <select id="deneme-ogr-unite" onchange="loadTopics('deneme-ogr')"></select>
+                </div>
+                <div class="form-group">
+                  <label>Konu / Kazanım Detayı</label>
+                  <select id="deneme-ogr-topic" onchange="loadDenemeOgrCiktilar()"></select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group" style="flex: 2;">
+                  <label>Öğrenme Çıktısı</label>
+                  <select id="deneme-ogr-cikti"></select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label>Soru Sayısı</label>
+                  <select id="deneme-ogr-soru-sayisi">
+                    <option value="1" selected>1 Soru</option>
+                    <option value="2">2 Soru</option>
+                    <option value="3">3 Soru</option>
+                    <option value="4">4 Soru</option>
+                    <option value="5">5 Soru</option>
+                  </select>
+                </div>
+              </div>
+              <div class="btn-group" style="margin-bottom:15px;">
+                <button class="btn btn-primary btn-sm" onclick="addDenemeOgrCikti()">➕ Kazanım Ekle</button>
+              </div>
+              <div id="deneme-ogr-liste-container" style="margin-top:15px; margin-bottom:15px;">
+                <div class="card-title" style="font-size:0.75rem; color:var(--text-muted);">Sınava Eklenen Kazanımlar</div>
+                <div id="deneme-ogr-liste" style="min-height: 40px;"></div>
+              </div>
+            </div>
+
+            <!-- Ortak Ayarlar -->
+            <div class="form-row" style="border-top: 1px solid var(--border); padding-top: 15px; margin-top: 15px;">
+              <div class="form-group">
+                <label>Zorluk Seviyesi</label>
+                <select id="deneme-zorluk">
+                  <option value="kolay">Temel Bilgi (Kolay)</option>
+                  <option value="orta" selected>Uygulama & Analiz (Orta)</option>
+                  <option value="zor">Muhakeme & LGS (Zor)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Soru Tarzı</label>
+                <select id="deneme-tarz">
+                  <option value="test" selected>Sadece Çoktan Seçmeli (Test)</option>
+                  <option value="karma">Karma (Çoktan seçmeli, açık uçlu vb.)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="btn-group" style="margin-top:15px;">
+              <button class="btn btn-primary" onclick="generateDeneme()" id="btn-deneme">✨ Deneme Sınavı Üret</button>
+            </div>
+          </div>
+        </div>
+        <div class="workspace-preview">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="card-title">
+              <span>📄 Üretilen Deneme Sınavı & Cevap Anahtarı</span>
+              <span class="badge badge-primary" id="routed-badge-deneme">Beklemede</span>
+            </div>
+            <div class="loading-bar" id="loading-deneme"></div>
+            <div class="output-box" id="output-deneme"><span class="output-placeholder">Deneme sınavı burada görünecek...</span></div>
+            <div class="btn-group" style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-success btn-sm" onclick="copyOutput('output-deneme')">📋 Kopyala</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadWord('output-deneme','deneme_sinavi')">📄 Word (.docx)</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPDF('output-deneme','deneme_sinavi')">🖨️ PDF</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadHTML('output-deneme','deneme_sinavi')">🌐 HTML</button>
+              <button class="btn btn-outline btn-sm" onclick="downloadPowerPoint('output-deneme','deneme_sinavi')">📊 PPTX (Slayt)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== AYARLAR ===== -->
+    <div id="page-ayarlar" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">⚙️ API & Motor Yapılandırması</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          FenAI, varsayılan olarak dahili veya özel <strong>Gemini 2.5 Flash</strong> ile entegre çalışır. "Canfenci Akıllı Dağıtım Modu" seçildiğinde görevler girdiğiniz anahtarlara göre otomatik dağıtılır.
+        </p>
+        
+        <div class="form-group" style="max-width: 400px; margin-bottom: 20px;">
+          <label for="api-model-select">API Sağlayıcı / Model Seçin</label>
+          <select id="api-model-select" onchange="onApiModelSelectChange()">
+            <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
+            <option value="deepseek">DeepSeek API (deepseek-v3)</option>
+            <option value="openai">OpenAI API (gpt-4o, gpt-4o-mini vb.)</option>
+            <option value="openrouter">OpenRouter API (Claude, GPT, R1 vb.)</option>
+            <option value="claude">Anthropic Claude (Direct API)</option>
+            <option value="perplexity">Perplexity API (Sonar Arama Modelleri)</option>
+            <option value="nvidia">Nvidia NIM (Direct API)</option>
+          </select>
+        </div>
+        
+        <div id="api-config-detail-container" style="min-height: 140px; padding: 16px; background: rgba(255,255,255,0.01); border: 1px dashed var(--border); border-radius: 8px;">
+          <!-- JS ile dinamik olarak doldurulacaktır -->
+        </div>
+      </div>
+      
+      <!-- PWA UYGULAMA KURULUMU -->
+      <div class="card" style="margin-top:20px;">
+        <div class="card-title">📱 PWA Masaüstü & Mobil Uygulama Modu</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          FenAI panelini Google Chrome veya Android/iOS cihazınızda <strong>Masaüstü/Mobil PWA Uygulaması</strong> olarak yükleyip bağımsız uygulama penceresinde kullanabilirsiniz.
+        </p>
+        <div id="pwa-status-box" style="display:flex; align-items:center; justify-content:space-between; padding:14px; background:var(--surface2); border-radius:8px; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:1.6rem;">💻</span>
+            <div>
+              <strong id="pwa-status-title" style="font-size:0.9rem; color:var(--text);">Tarayıcıda Çalışıyor</strong>
+              <div id="pwa-status-sub" style="font-size:0.78rem; color:var(--text-muted);">Uygulamayı bilgisayarınıza/telefonunuza yükleyerek doğrudan çalıştırmak için butona tıklayın.</div>
+            </div>
+          </div>
+          <button id="btn-pwa-install-settings" class="btn btn-primary btn-sm" style="display:none; padding:8px 16px; font-weight:600;" onclick="installPWA()">📲 FenAI Uygulamasını Yükle</button>
+        </div>
+      </div>
+      
+      <!-- MÜFREDAT DÜZENLEYİCİ -->
+      <div class="card">
+        <div class="card-title">📚 Müfredat Düzenleyici (Özel Eklemeler)</div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">
+          Kendi sınıf, ünite ve konularınızı ekleyebilir, mevcut olanları düzenleyebilirsiniz. 
+          Varsayılan müfredat korunur, ekledikleriniz ayrıca saklanır.
+        </p>
+        <div class="form-group">
+          <label>Sınıf Seç (Düzenlemek için)</label>
+          <select id="mufre-sinif" onchange="mufreSinifDegisti()">
+            <option value="5">5. Sınıf</option>
+            <option value="6">6. Sınıf</option>
+            <option value="7">7. Sınıf</option>
+            <option value="8">8. Sınıf</option>
+          </select>
+        </div>
+        <div id="mufre-uniteler-container">
+          <!-- Üniteler listelenecek -->
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Yeni Ünite Adı</label>
+            <input type="text" id="mufre-yeni-unite" placeholder="Örn: Ünite 8: Yeni Konu" />
+          </div>
+          <div class="form-group" style="justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="mufreUniteEkle()">➕ Ünite Ekle</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ünite Seç (Konu eklemek için)</label>
+            <select id="mufre-unite-select"></select>
+          </div>
+          <div class="form-group">
+            <label>Yeni Konu/Kazanım</label>
+            <input type="text" id="mufre-yeni-konu" placeholder="Örn: Yeni kazanım açıklaması" />
+          </div>
+          <div class="form-group" style="justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="mufreKonuEkle()">➕ Konu Ekle</button>
+          </div>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-danger" onclick="mufreSifirla()">🗑️ Tüm Özel Eklemeleri Sıfırla</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <div class="card-title">🗑️ Gizlilik ve Güvenlik</div>
+        <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:12px;">Özel API anahtarlarınız tamamen tarayıcınızda (Local Storage) saklanır, hiçbir harici sunucuya iletilmez.</p>
+        <button class="btn btn-danger btn-sm" onclick="clearAllData()">Kayıtlı Tüm Verileri Temizle</button>
+      </div>
+    </div>
+
+    <!-- ===== SORU BANKASI (YENİ) ===== -->
+    <div id="page-bankasi" class="page-content" style="display:none;">
+      <div class="card">
+        <div class="card-title">🏦 Soru Bankası</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+          <input type="text" id="bankasi-ara" placeholder="Ara..." oninput="bankasiFiltrele()" style="flex:1; min-width:150px;">
+          <select id="bankasi-tur" onchange="bankasiFiltrele()">
+            <option value="">Tüm Türler</option>
+            <option value="konu">Konu Anlatımı</option>
+            <option value="test">Kavram Testi</option>
+            <option value="baglamli">Bağlamlı Soru</option>
+            <option value="calisma">Çalışma Kağıdı</option>
+            <option value="yazili">Yazılı Sınav</option>
+          </select>
+          <select id="bankasi-sinif" onchange="bankasiFiltrele()">
+            <option value="">Tüm Sınıflar</option>
+            <option value="5">5. Sınıf</option>
+            <option value="6">6. Sınıf</option>
+            <option value="7">7. Sınıf</option>
+            <option value="8">8. Sınıf</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="bankasiTemizleFiltre()">Temizle</button>
+          <button class="btn btn-success btn-sm" onclick="bankasiDisariAktar()">📤 Dışa Aktar</button>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('bankasi-import-input').click()">📥 İçe Aktar</button>
+          <input type="file" id="bankasi-import-input" accept=".json" style="display:none" onchange="bankasiIceriAktar(event)">
+        </div>
+        <div id="bankasi-liste"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<!-- MODÜL JS DOSYALARI (Sırayla yüklenir) -->
+<!-- FENAI MODÜLER YAZILIM MİMARİSİ -->
+<script src="js/core/bootstrap.js"></script>
+<script src="js/core/appState.js"></script>
+<script src="js/ui/uiEngine.js"></script>
+<script src="js/database/localDb.js"></script>
+<script src="js/ai/providers.js"></script>
+<script src="js/prompt/promptEngine.js"></script>
+<script src="js/ai/aiEngine.js"></script>
+<script src="js/ai/learningAgent.js"></script>
+<script src="js/document/layoutEngine.js"></script>
+<script src="js/document/logoBase64.js"></script>
+<script src="js/document/exportEngine.js"></script>
+
+<!-- GERİYE UYUMLULUK KÖPRÜLERİ VE MÜFREDAT VERİLERİ -->
+<script src="js/database.js"></script>
+<script src="js/mufredat.js"></script>
+<script src="js/cerceve.js"></script>
+<script src="js/api.js"></script>
+<script src="js/word.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/component-engine.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
