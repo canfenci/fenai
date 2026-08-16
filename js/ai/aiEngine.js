@@ -111,10 +111,25 @@ window.FenAI.AIEngine = (() => {
         }
       }
 
-      // SMART ENGINE: no targetModule or unknown targetModule -> default to Gemini
+      // SMART ENGINE: no targetModule or unknown targetModule -> pick first available provider
       if (currentEngine === 'smart') {
-        if (targetModule) updateRoutedBadge(targetModule, 'Gemini 2.5 Flash (Varsayılan)', 'badge-success');
-        return await window.FenAI.Providers.callGemini(finalPrompt, finalSystemPrompt);
+        const badgeTarget = targetModule || 'dna';
+        const tryProviders = [
+          { has: !!geminiKey, fn: () => window.FenAI.Providers.callGemini(finalPrompt, finalSystemPrompt), label: 'Gemini 2.5 Flash', cls: 'badge-success' },
+          { has: !!openrouterKey, fn: () => window.FenAI.Providers.callOpenRouterDirect(finalPrompt, 'openai/gpt-4o-mini', finalSystemPrompt), label: 'GPT-4o-mini (OpenRouter)', cls: 'badge-warning' },
+          { has: !!deepseekKey, fn: () => window.FenAI.Providers.callDeepSeekDirect(finalPrompt, finalSystemPrompt), label: 'DeepSeek-V3', cls: 'badge-primary' },
+          { has: !!window.FenAI.AppState.getApiKey('openai'), fn: () => window.FenAI.Providers.callOpenAiDirect(finalPrompt, finalSystemPrompt), label: 'OpenAI', cls: 'badge-primary' },
+          { has: !!window.FenAI.AppState.getApiKey('claude'), fn: () => window.FenAI.Providers.callClaudeDirect(finalPrompt, finalSystemPrompt), label: 'Claude', cls: 'badge-warning' },
+          { has: !!window.FenAI.AppState.getApiKey('perplexity'), fn: () => window.FenAI.Providers.callPerplexityDirect(finalPrompt, finalSystemPrompt), label: 'Perplexity', cls: 'badge-warning' },
+          { has: !!window.FenAI.AppState.getApiKey('nvidia'), fn: () => window.FenAI.Providers.callNvidiaNimDirect(finalPrompt, finalSystemPrompt), label: 'Nvidia NIM', cls: 'badge-primary' }
+        ];
+        for (const p of tryProviders) {
+          if (p.has) {
+            updateRoutedBadge(badgeTarget, `${p.label} (Otomatik)`, p.cls);
+            return await p.fn();
+          }
+        }
+        throw new Error('Hiçbir API anahtarı tanımlı değil. Lütfen Ayarlar sayfasından en az bir API anahtarı girin.');
       }
 
       // DIRECT ENGINE SELECTIONS WITH MANUAL CONFIGS
