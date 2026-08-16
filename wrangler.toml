@@ -1,0 +1,9 @@
+name = "fenai-bff"
+main = "apps/bff/src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+PLATFORM_ENABLED = "true"
+PLATFORM_DAILY_LIMIT = "10000"
+PLATFORM_PER_USER_DAILY = "500"

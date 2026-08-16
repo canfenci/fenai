@@ -1,0 +1,41 @@
+name: Deploy to Cloudflare Workers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy Worker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        env:
+          PLATFORM_GEMINI_KEY: ${{ secrets.PLATFORM_GEMINI_KEY }}
+          PLATFORM_ENABLED: ${{ secrets.PLATFORM_ENABLED }}
+          PLATFORM_DAILY_LIMIT: ${{ secrets.PLATFORM_DAILY_LIMIT }}
+          PLATFORM_PER_USER_DAILY: ${{ secrets.PLATFORM_PER_USER_DAILY }}
