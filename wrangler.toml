@@ -7,3 +7,8 @@ compatibility_flags = ["nodejs_compat"]
 PLATFORM_ENABLED = "true"
 PLATFORM_DAILY_LIMIT = "10000"
 PLATFORM_PER_USER_DAILY = "500"
+
+# KV namespace for rate limiting (create with: wrangler kv:namespace create RATE_LIMIT_KV)
+# [[kv_namespaces]]
+# binding = "RATE_LIMIT_KV"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
